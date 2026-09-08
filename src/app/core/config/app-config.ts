@@ -11,7 +11,8 @@ export interface AppConfig {
   /**
    * Base URL for every backend call. Defaults to the same-origin relative path
    * `/api`, which keeps the browser inside the Nginx perimeter and avoids CORS
-   * (the backend registers no CORS policy — spec sections 5, 19).
+   * Local publishing keeps this path; public publishing supplies an HTTPS API
+   * origin ending in /api and an explicit backend CORS allowlist.
    */
   readonly apiBaseUrl: string;
 
@@ -33,25 +34,78 @@ export const APP_CONFIG = new InjectionToken<AppConfig>('APP_CONFIG', {
 const runtimeConfig: { value: AppConfig } = { value: DEFAULT_APP_CONFIG };
 
 export async function loadAppConfig(): Promise<void> {
+  let parsed: unknown;
   try {
     const response = await fetch('config.json', { cache: 'no-cache' });
     if (!response.ok) {
       return;
     }
-    const parsed = (await response.json()) as Partial<AppConfig>;
-    runtimeConfig.value = {
-      apiBaseUrl:
-        typeof parsed.apiBaseUrl === 'string' && parsed.apiBaseUrl.trim().length > 0
-          ? parsed.apiBaseUrl.replace(/\/+$/, '')
-          : DEFAULT_APP_CONFIG.apiBaseUrl,
-      sessionExpiryWarningSeconds:
-        typeof parsed.sessionExpiryWarningSeconds === 'number' &&
-        parsed.sessionExpiryWarningSeconds > 0
-          ? parsed.sessionExpiryWarningSeconds
-          : DEFAULT_APP_CONFIG.sessionExpiryWarningSeconds,
-    };
+    parsed = await response.json();
   } catch {
     // Keep defaults; a missing/broken config.json must not block the shell.
+    return;
+  }
+  // An explicitly unsafe API URL must never silently receive login credentials.
+  runtimeConfig.value = resolveAppConfig(parsed, window.location.href);
+}
+
+export function resolveAppConfig(value: unknown, pageUrl: string): AppConfig {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error('Configuração pública da aplicação inválida.');
+  }
+  const parsed = value as Partial<AppConfig> & { localApiBaseUrl?: string };
+  const page = new URL(pageUrl);
+  const configured = isLoopbackHost(page.hostname) && parsed.localApiBaseUrl !== undefined
+    ? parsed.localApiBaseUrl
+    : (parsed.apiBaseUrl ?? DEFAULT_APP_CONFIG.apiBaseUrl);
+
+  return {
+    apiBaseUrl: normalizeApiBaseUrl(configured, page),
+    sessionExpiryWarningSeconds:
+      typeof parsed.sessionExpiryWarningSeconds === 'number' &&
+      Number.isFinite(parsed.sessionExpiryWarningSeconds) && parsed.sessionExpiryWarningSeconds > 0
+        ? parsed.sessionExpiryWarningSeconds
+        : DEFAULT_APP_CONFIG.sessionExpiryWarningSeconds,
+  };
+}
+
+function normalizeApiBaseUrl(value: string, page: URL): string {
+  const invalid = () => new Error('A URL da API deve usar HTTPS e terminar em /api; HTTP somente em loopback local.');
+  if (typeof value !== 'string' || /[\s\\]/.test(value)) throw invalid();
+  const normalized = value.replace(/\/+$/, '');
+  if (/^\/(?!\/)[a-zA-Z0-9/_-]*api$/.test(normalized) && normalized.endsWith('/api')) {
+    return normalized;
+  }
+  let url: URL;
+  try {
+    url = new URL(normalized);
+  } catch {
+    throw invalid();
+  }
+  const localHttp = page.protocol === 'http:' && isLoopbackHost(page.hostname)
+    && url.protocol === 'http:' && isLoopbackHost(url.hostname);
+  if ((url.protocol !== 'https:' && !localHttp) || url.username || url.password
+      || url.search || url.hash || !url.pathname.endsWith('/api')
+      || (!isLoopbackHost(page.hostname) && isLoopbackHost(url.hostname))) {
+    throw invalid();
+  }
+  return `${url.origin}${url.pathname}`;
+}
+
+function isLoopbackHost(host: string): boolean {
+  return host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+}
+
+/** Compare parsed origins and path boundaries, never raw string prefixes. */
+export function isApiRequestUrl(requestUrl: string, apiBaseUrl: string, pageUrl: string): boolean {
+  try {
+    const api = new URL(apiBaseUrl, pageUrl);
+    const request = new URL(requestUrl, pageUrl);
+    const basePath = api.pathname.replace(/\/+$/, '');
+    return !request.username && !request.password && request.origin === api.origin
+      && (request.pathname === basePath || request.pathname.startsWith(`${basePath}/`));
+  } catch {
+    return false;
   }
 }
 
