@@ -1,17 +1,69 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files
 
-# Compiled output
+# ─────────────────────────────────────────────────────────────
+# Secrets — never commit real environment files, keys or certs.
+# Only .env.example (documented, secret-free) is tracked.
+# ─────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.local
+secrets.json
+*.pem
+*.key
+*.pfx
+*.p12
+*.crt
+*.cer
+*.der
+*.keystore
+*.jks
+
+# ─────────────────────────────────────────────────────────────
+# Build output
+# ─────────────────────────────────────────────────────────────
 /dist
 /tmp
 /out-tsc
 /bazel-out
 
-# Node
+# ─────────────────────────────────────────────────────────────
+# Dependencies / tooling caches
+# ─────────────────────────────────────────────────────────────
 /node_modules
-npm-debug.log
-yarn-error.log
+/.angular/cache
+.sass-cache/
+/connect.lock
+/typings
+.eslintcache
+.npm
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/versions
 
-# IDEs and editors
+# ─────────────────────────────────────────────────────────────
+# Test / coverage output
+# ─────────────────────────────────────────────────────────────
+/coverage
+/.nyc_output
+/libpeerconnection.log
+testem.log
+
+# ─────────────────────────────────────────────────────────────
+# Logs & runtime
+# ─────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ─────────────────────────────────────────────────────────────
+# Editors / IDEs
+# ─────────────────────────────────────────────────────────────
 .idea/
 .project
 .classpath
@@ -19,24 +71,26 @@ yarn-error.log
 *.launch
 .settings/
 *.sublime-workspace
+*.sublime-project
+.history/*
 
-# Visual Studio Code
+# VS Code — keep the shared workspace config, ignore everything else
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-.history/*
 
-# Miscellaneous
-/.angular/cache
-.sass-cache/
-/connect.lock
-/coverage
-/libpeerconnection.log
-testem.log
-/typings
-
-# System files
+# ─────────────────────────────────────────────────────────────
+# OS files
+# ─────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ─────────────────────────────────────────────────────────────
+# Local Docker overrides (compose base file IS tracked)
+# ─────────────────────────────────────────────────────────────
+docker-compose.override.yml
+docker-compose.*.local.yml

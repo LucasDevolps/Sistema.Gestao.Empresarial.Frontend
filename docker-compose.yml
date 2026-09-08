@@ -1,0 +1,63 @@
+# Standalone composition for the frontend container ONLY.
+#
+# It does not modify the backend composition. The frontend's own Nginx serves the
+# SPA and reverse-proxies /api and /health to the backend's perimeter Nginx, so
+# the browser sees one origin and the backend API stays unexposed.
+#
+# Connectivity to the backend: this compose joins the backend's existing
+# `sge-edge` network (declared external below) and proxies to the `nginx`
+# service container over it. Bring the backend up first.
+#
+# Run inside WSL 2 (Ubuntu), never from the Windows shell:
+#   wsl -d Ubuntu -- bash -lc 'cd /mnt/c/Users/lucas/source/repos/Sistema.Gestao.Empresarial.Frontend && docker compose config --quiet'
+#   wsl -d Ubuntu -- bash -lc 'cd /mnt/c/Users/lucas/source/repos/Sistema.Gestao.Empresarial.Frontend && docker compose up -d --build'
+
+name: sistema-gestao-empresarial-frontend
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      # Backend perimeter Nginx, reached container-to-container over sge-edge.
+      # Override with SGE_FRONTEND_API_UPSTREAM (e.g. https://host.docker.internal:8443)
+      # if the backend Nginx is published on the host instead.
+      API_UPSTREAM: ${SGE_FRONTEND_API_UPSTREAM:-https://nginx:8443}
+      # Host header + TLS SNI sent upstream — the backend Nginx pins server_name.
+      API_HOST_HEADER: ${SGE_FRONTEND_API_HOST_HEADER:-localhost}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - sge-edge
+    ports:
+      # Publish on loopback only during local development.
+      - "127.0.0.1:8082:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    pids_limit: 128
+    mem_limit: 128m
+    cpus: 0.75
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+networks:
+  default:
+  sge-edge:
+    external: true
+    name: ${SGE_EDGE_NETWORK:-sge-edge}

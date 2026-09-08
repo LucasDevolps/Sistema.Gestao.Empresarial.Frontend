@@ -1,0 +1,201 @@
+<div class="page stack">
+  <header class="page__head">
+    <div>
+      <h1 class="page__title">{{ isEdit() ? 'Editar funcionário' : 'Novo funcionário' }}</h1>
+      <p class="page__subtitle">
+        {{
+          isEdit()
+            ? 'A unidade de contratação, a matrícula e a data de admissão não são alteradas por aqui.'
+            : 'Os catálogos são carregados do backend conforme as suas permissões de consulta.'
+        }}
+      </p>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="empty-state"><span class="spinner"></span> Carregando…</div>
+  } @else if (loadError()) {
+    <div class="card"><div class="card__body"><p role="alert">{{ loadError() }}</p></div></div>
+  } @else {
+    @if (missingCatalogs().length > 0) {
+      <div class="card">
+        <div class="card__body">
+          <h2>Permissões insuficientes</h2>
+          <p class="muted">
+            Para {{ isEdit() ? 'editar' : 'cadastrar' }} um funcionário você precisa também das
+            permissões de consulta abaixo. O envio está bloqueado até que sejam concedidas.
+          </p>
+          <ul>
+            @for (item of missingCatalogs(); track item) {
+              <li><code>{{ item }}</code></li>
+            }
+          </ul>
+        </div>
+      </div>
+    }
+
+    <form class="card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="card__body stack">
+        <div class="grid-2">
+          <div class="field">
+            <label class="field__label" for="name">Nome</label>
+            <input id="name" class="input" formControlName="name" maxlength="200" />
+          </div>
+          <div class="field">
+            <label class="field__label" for="email">E-mail</label>
+            <input id="email" class="input" type="email" formControlName="email" maxlength="254" />
+          </div>
+          <div class="field">
+            <label class="field__label" for="phone">Telefone <span class="field__hint">(opcional)</span></label>
+            <input id="phone" class="input" formControlName="phone" maxlength="30" />
+          </div>
+          @if (!isEdit()) {
+            <div class="field">
+              <label class="field__label" for="admission">Data de admissão</label>
+              <input id="admission" class="input" type="date" formControlName="admissionDate" />
+            </div>
+          }
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label class="field__label" for="profession">Profissão</label>
+            <select id="profession" class="select" formControlName="professionGuid">
+              <option value="">Selecione…</option>
+              @for (item of professions(); track item.guid) {
+                <option [value]="item.guid">{{ item.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label" for="position">Cargo</label>
+            <select id="position" class="select" formControlName="positionGuid">
+              <option value="">Selecione…</option>
+              @for (item of positions(); track item.guid) {
+                <option [value]="item.guid">{{ item.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label" for="level">Nível profissional</label>
+            <select id="level" class="select" formControlName="levelGuid">
+              <option value="">Selecione…</option>
+              @for (item of levels(); track item.guid) {
+                <option [value]="item.guid">{{ item.code }} · {{ item.name }}</option>
+              }
+            </select>
+          </div>
+          @if (!isEdit()) {
+            <div class="field">
+              <label class="field__label" for="hiring">Unidade de contratação</label>
+              <select id="hiring" class="select" formControlName="hiringUnitGuid">
+                <option value="">Selecione…</option>
+                @for (item of units(); track item.guid) {
+                  <option [value]="item.guid">{{ item.name }}</option>
+                }
+              </select>
+            </div>
+          }
+        </div>
+
+        @if (!isEdit()) {
+          <fieldset class="subform" formArrayName="actingUnits">
+            <legend>Unidades de atuação <span class="field__hint">(até {{ maxItems }}, opcional)</span></legend>
+            @for (group of actingUnits.controls; track $index) {
+              <div class="row" [formGroupName]="$index">
+                <div class="field" style="flex: 2 1 220px">
+                  <label class="field__label">
+                    Unidade
+                    <select class="select" formControlName="unitGuid">
+                      <option value="">Selecione…</option>
+                      @for (item of units(); track item.guid) {
+                        <option [value]="item.guid">{{ item.name }}</option>
+                      }
+                    </select>
+                  </label>
+                </div>
+                <div class="field" style="flex: 1 1 160px">
+                  <label class="field__label">
+                    Início
+                    <input class="input" type="date" formControlName="startDate" />
+                  </label>
+                </div>
+                <button type="button" class="btn btn--ghost btn--sm" (click)="removeActingUnitRow($index)">
+                  Remover
+                </button>
+              </div>
+            }
+            <button
+              type="button"
+              class="btn btn--ghost btn--sm"
+              [disabled]="actingUnits.length >= maxItems || !canUnits()"
+              (click)="addActingUnitRow()"
+            >
+              Adicionar unidade de atuação
+            </button>
+          </fieldset>
+
+          <fieldset class="subform" formArrayName="sectors">
+            <legend>Setores <span class="field__hint">(até {{ maxItems }}, opcional)</span></legend>
+            @if (!canSectors()) {
+              <p class="muted">
+                Sem a permissão <code>SETOR_VISUALIZAR</code> não é possível selecionar setores no
+                cadastro.
+              </p>
+            } @else {
+              @for (group of sectorLinks.controls; track $index) {
+                <div class="row" [formGroupName]="$index">
+                  <div class="field" style="flex: 2 1 220px">
+                    <label class="field__label">
+                      Setor
+                      <select class="select" formControlName="sectorGuid">
+                        <option value="">Selecione…</option>
+                        @for (item of sectors(); track item.guid) {
+                          <option [value]="item.guid">{{ item.unit.name }} · {{ item.name }}</option>
+                        }
+                      </select>
+                    </label>
+                  </div>
+                  <div class="field" style="flex: 1 1 160px">
+                    <label class="field__label">
+                      Início
+                      <input class="input" type="date" formControlName="startDate" />
+                    </label>
+                  </div>
+                  <button type="button" class="btn btn--ghost btn--sm" (click)="removeSectorRow($index)">
+                    Remover
+                  </button>
+                </div>
+              }
+              <button
+                type="button"
+                class="btn btn--ghost btn--sm"
+                [disabled]="sectorLinks.length >= maxItems"
+                (click)="addSectorRow()"
+              >
+                Adicionar setor
+              </button>
+            }
+          </fieldset>
+        }
+      </div>
+
+      <div class="card__header" style="border-top: 1px solid var(--color-border); border-bottom: none">
+        <a class="btn btn--ghost" [routerLink]="isEdit() ? ['/funcionarios', employeeGuid()] : ['/funcionarios']">
+          Cancelar
+        </a>
+        <button
+          type="submit"
+          class="btn btn--accent"
+          [disabled]="submitting() || missingCatalogs().length > 0"
+        >
+          @if (submitting()) {
+            <span class="spinner" aria-hidden="true"></span> Salvando…
+          } @else {
+            {{ isEdit() ? 'Salvar alterações' : 'Cadastrar' }}
+          }
+        </button>
+      </div>
+    </form>
+  }
+</div>
