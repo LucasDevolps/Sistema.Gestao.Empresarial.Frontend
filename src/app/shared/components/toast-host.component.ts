@@ -21,8 +21,8 @@ import { NotificationService } from '../../core/notifications/notification.servi
     `
       .toast-host {
         position: fixed;
-        top: 1rem;
-        right: 1rem;
+        top: max(1rem, env(safe-area-inset-top));
+        right: max(1rem, env(safe-area-inset-right));
         z-index: 1000;
         display: flex;
         flex-direction: column;

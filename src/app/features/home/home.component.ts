@@ -120,24 +120,6 @@ const QUICK_LINKS: readonly QuickLink[] = [
   `,
   styles: [
     `
-      .facts {
-        margin: 0;
-        display: grid;
-        gap: 0.5rem;
-      }
-      .facts div {
-        display: flex;
-        gap: 0.5rem;
-      }
-      .facts dt {
-        min-width: 9rem;
-        color: var(--color-text-muted);
-        font-size: 0.85rem;
-      }
-      .facts dd {
-        margin: 0;
-        font-weight: 550;
-      }
       .quick {
         display: flex;
         flex-direction: column;
