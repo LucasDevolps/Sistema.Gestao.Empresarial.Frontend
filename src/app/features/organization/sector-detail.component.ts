@@ -42,27 +42,6 @@ import { OrganizationCatalogService } from './organization-catalog.service';
       }
     </div>
   `,
-  styles: [
-    `
-      .facts {
-        margin: 0;
-        display: grid;
-        gap: 0.5rem;
-      }
-      .facts div {
-        display: flex;
-        gap: 0.75rem;
-      }
-      .facts dt {
-        min-width: 10rem;
-        color: var(--color-text-muted);
-      }
-      .facts dd {
-        margin: 0;
-        font-weight: 550;
-      }
-    `,
-  ],
 })
 export class SectorDetailComponent implements OnInit {
   private readonly service = inject(OrganizationCatalogService);

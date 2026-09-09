@@ -6,6 +6,7 @@
   display: grid;
   grid-template-columns: var(--sidebar-width) 1fr;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .skip-link {
@@ -31,6 +32,7 @@
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100dvh;
   overflow-y: auto;
 }
 
@@ -89,11 +91,13 @@
 }
 
 .topbar {
-  height: var(--header-height);
+  min-height: var(--header-height);
   display: flex;
   align-items: center;
   gap: 1rem;
   padding: 0 1.5rem;
+  padding-left: max(1.5rem, env(safe-area-inset-left));
+  padding-right: max(1.5rem, env(safe-area-inset-right));
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   position: sticky;
@@ -126,7 +130,9 @@
 .topbar__user {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
+  min-width: 0;
+  flex-shrink: 0;
 }
 .topbar__identity {
   display: flex;
@@ -134,14 +140,53 @@
   align-items: flex-end;
   line-height: 1.25;
   font-size: 0.85rem;
+  min-width: 0;
+}
+.topbar__identity strong {
+  max-width: 44vw;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 480px) {
+  .topbar {
+    gap: 0.6rem;
+    padding: 0 0.9rem;
+    padding-left: max(0.9rem, env(safe-area-inset-left));
+    padding-right: max(0.9rem, env(safe-area-inset-right));
+  }
+  .topbar__identity {
+    font-size: 0.78rem;
+  }
+  .topbar__identity strong {
+    max-width: 38vw;
+  }
+  /* Keep the name; drop the secondary line to save horizontal space. */
+  .topbar__identity .muted {
+    display: none;
+  }
 }
 
 .content {
-  padding: 1.75rem 1.5rem 3rem;
   flex: 1;
+  min-width: 0;
+  padding: 1.75rem 1.5rem 3rem;
+  padding-left: max(1.5rem, env(safe-area-inset-left));
+  padding-right: max(1.5rem, env(safe-area-inset-right));
+  padding-bottom: calc(3rem + env(safe-area-inset-bottom));
 }
 .content:focus {
   outline: none;
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding: 1.25rem 1rem 2.5rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: calc(2.5rem + env(safe-area-inset-bottom));
+  }
 }
 
 .scrim {
@@ -156,7 +201,9 @@
     position: fixed;
     left: 0;
     top: 0;
-    width: var(--sidebar-width);
+    /* Never wider than the screen on small phones; leave room to see the scrim. */
+    width: min(var(--sidebar-width), 86vw);
+    padding-left: max(1rem, env(safe-area-inset-left));
     transform: translateX(-100%);
     transition: transform 0.2s ease;
     z-index: 1100;
