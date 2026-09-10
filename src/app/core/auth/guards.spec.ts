@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router, UrlTree, provideRouter } from '@angular/router';
 import { CurrentUserResponse } from '../models/auth.models';
 import { AuthStore } from './auth-store';
-import { authGuard, guestGuard, permissionGuard } from './guards';
+import { authGuard, guestGuard, permissionGuard, permissionGuardAny } from './guards';
 
 function identity(permissions: string[]): CurrentUserResponse {
   return {
@@ -65,6 +65,27 @@ describe('route guards', () => {
 
   it('permissionGuard sends an anonymous user to /login', () => {
     const guard = permissionGuard('PROFISSAO_VISUALIZAR');
+    const result = run(() => guard({} as never, [] as never));
+    expect(router.serializeUrl(result as UrlTree)).toBe('/login');
+  });
+
+  it('permissionGuardAny passes with a single matching code (no extra requirement stacked)', () => {
+    // A user who can only CREATE sectors must still reach the shared /setores path.
+    store.setIdentity(identity(['SETOR_CRIAR']));
+    const guard = permissionGuardAny('SETOR_VISUALIZAR', 'SETOR_CRIAR', 'SETOR_EDITAR');
+    expect(run(() => guard({} as never, [] as never))).toBe(true);
+  });
+
+  it('permissionGuardAny denies when none of the codes are held', () => {
+    store.setIdentity(identity(['FUNCIONARIO_VISUALIZAR']));
+    const guard = permissionGuardAny('SETOR_VISUALIZAR', 'SETOR_CRIAR', 'SETOR_EDITAR');
+    const result = run(() => guard({} as never, [] as never));
+    expect(result instanceof UrlTree).toBe(true);
+    expect(router.serializeUrl(result as UrlTree)).toBe('/');
+  });
+
+  it('permissionGuardAny sends an anonymous user to /login', () => {
+    const guard = permissionGuardAny('SETOR_VISUALIZAR', 'SETOR_CRIAR');
     const result = run(() => guard({} as never, [] as never));
     expect(router.serializeUrl(result as UrlTree)).toBe('/login');
   });

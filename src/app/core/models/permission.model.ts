@@ -7,7 +7,8 @@
  * permissions for the signed-in user always come from `GET /api/auth/me`
  * (spec sections 14, 15) — never from the JWT.
  *
- * `SETOR_EDITAR` exists in the backend enum but has NO endpoint, so no UI uses it.
+ * Sectors and sector categories are full CRUD-without-delete resources
+ * (`/api/setores*`, `/api/categorias-setor*`).
  */
 export const PERMISSION_CODES = [
   'FUNCIONARIO_VISUALIZAR',
@@ -21,7 +22,11 @@ export const PERMISSION_CODES = [
   'CARGO_EDITAR',
   'NIVEL_PROFISSIONAL_VISUALIZAR',
   'SETOR_VISUALIZAR',
+  'SETOR_CRIAR',
   'SETOR_EDITAR',
+  'CATEGORIA_SETOR_VISUALIZAR',
+  'CATEGORIA_SETOR_CRIAR',
+  'CATEGORIA_SETOR_EDITAR',
   'USUARIO_GERENCIAR_PERMISSOES',
 ] as const;
 
@@ -40,7 +45,11 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   CARGO_EDITAR: 'Editar cargos',
   NIVEL_PROFISSIONAL_VISUALIZAR: 'Visualizar níveis profissionais',
   SETOR_VISUALIZAR: 'Visualizar setores',
-  SETOR_EDITAR: 'Editar setores',
+  SETOR_CRIAR: 'Criar setores',
+  SETOR_EDITAR: 'Editar setores e unidades atendidas',
+  CATEGORIA_SETOR_VISUALIZAR: 'Visualizar categorias de setor',
+  CATEGORIA_SETOR_CRIAR: 'Criar categorias de setor',
+  CATEGORIA_SETOR_EDITAR: 'Editar categorias de setor',
   USUARIO_GERENCIAR_PERMISSOES: 'Gerenciar permissões de usuários',
 };
 

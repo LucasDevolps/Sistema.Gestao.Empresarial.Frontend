@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard, permissionGuard } from './core/auth/guards';
+import { authGuard, guestGuard, permissionGuard, permissionGuardAny } from './core/auth/guards';
 
 /**
  * Route map. Every protected feature is lazy-loaded and gated by `authGuard`
@@ -56,10 +56,28 @@ export const routes: Routes = [
           import('./features/organization/hospital-units.routes').then((m) => m.HOSPITAL_UNITS_ROUTES),
       },
       {
+        // Parent path only requires *some* sector access; each child route below
+        // enforces the exact permission of its backend endpoint (list → VISUALIZAR,
+        // novo → CRIAR, editar/status/unidades → EDITAR). Using VISUALIZAR here
+        // would wrongly force it as a prerequisite for creating/editing.
         path: 'setores',
-        canMatch: [permissionGuard('SETOR_VISUALIZAR')],
+        canMatch: [permissionGuardAny('SETOR_VISUALIZAR', 'SETOR_CRIAR', 'SETOR_EDITAR')],
         loadChildren: () =>
           import('./features/organization/sectors.routes').then((m) => m.SECTORS_ROUTES),
+      },
+      {
+        path: 'categorias-setor',
+        canMatch: [
+          permissionGuardAny(
+            'CATEGORIA_SETOR_VISUALIZAR',
+            'CATEGORIA_SETOR_CRIAR',
+            'CATEGORIA_SETOR_EDITAR',
+          ),
+        ],
+        loadChildren: () =>
+          import('./features/organization/sector-categories.routes').then(
+            (m) => m.SECTOR_CATEGORIES_ROUTES,
+          ),
       },
       {
         path: 'usuarios',

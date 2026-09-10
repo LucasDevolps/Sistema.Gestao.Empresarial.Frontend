@@ -1,0 +1,263 @@
+<div class="page stack">
+  <header class="page__head">
+    <div>
+      <h1 class="page__title">{{ isEdit() ? 'Editar setor' : 'Novo setor' }}</h1>
+      <p class="page__subtitle">Identifique o setor por <strong>SIGLA — Nome</strong>.</p>
+    </div>
+    <a class="btn btn--ghost" routerLink="/setores">Voltar</a>
+  </header>
+
+  @if (loading()) {
+    <div class="empty-state"><span class="spinner"></span> Carregando…</div>
+  } @else if (loadError()) {
+    <div class="card"><div class="card__body"><p role="alert">{{ loadError() }}</p></div></div>
+  } @else {
+    @if (missingCatalogs().length > 0) {
+      <div class="card">
+        <div class="card__body muted" role="alert">
+          Faltam permissões para catálogos obrigatórios desta operação:
+          {{ missingCatalogs().join(', ') }}.
+        </div>
+      </div>
+    }
+
+    <form class="card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="card__body stack">
+        @if (isEdit()) {
+          <div class="row" style="align-items: center; gap: 0.75rem">
+            <span class="muted">Situação atual:</span>
+            <app-status-badge [active]="active()" />
+            <button
+              type="button"
+              class="btn btn--ghost btn--sm"
+              [disabled]="!canEdit() || busy()"
+              (click)="toggleStatus()"
+            >
+              {{ active() ? 'Inativar' : 'Reativar' }}
+            </button>
+          </div>
+        }
+
+        <div class="row">
+          <div class="field" style="flex: 1 1 260px">
+            <label class="field__label" for="unit">Unidade hospitalar (principal)</label>
+            @if (isEdit()) {
+              <input id="unit" class="input" [value]="principalUnitName()" disabled />
+              <span class="field__hint">A unidade principal não pode ser alterada.</span>
+            } @else {
+              <select id="unit" class="select" formControlName="unitGuid">
+                <option value="">Selecione…</option>
+                @for (unit of units(); track unit.guid) {
+                  <option [value]="unit.guid">{{ unit.name }}</option>
+                }
+              </select>
+              @if (invalid('unitGuid')) {
+                <span class="field__error">Selecione a unidade hospitalar.</span>
+              }
+            }
+          </div>
+          <div class="field" style="flex: 1 1 260px">
+            <label class="field__label" for="category">Categoria</label>
+            <select id="category" class="select" formControlName="categoryGuid">
+              <option value="">Selecione…</option>
+              @for (category of categories(); track category.guid) {
+                <option [value]="category.guid">{{ category.name }}</option>
+              }
+            </select>
+            @if (invalid('categoryGuid')) {
+              <span class="field__error">Selecione a categoria do setor.</span>
+            }
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field" style="flex: 2 1 280px">
+            <label class="field__label" for="name">Nome do setor</label>
+            <input id="name" class="input" formControlName="name" maxlength="150" />
+            @if (invalid('name')) {
+              <span class="field__error">Informe o nome (até 150 caracteres).</span>
+            }
+          </div>
+          <div class="field" style="flex: 1 1 140px">
+            <label class="field__label" for="sigla">Sigla</label>
+            <input
+              id="sigla"
+              class="input"
+              formControlName="sigla"
+              maxlength="20"
+              style="text-transform: uppercase"
+            />
+            @if (invalid('sigla')) {
+              <span class="field__error">Informe a sigla (até 20 caracteres).</span>
+            }
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="description">
+            Descrição <span class="field__hint">(opcional, até 1000)</span>
+          </label>
+          <textarea
+            id="description"
+            class="textarea"
+            rows="3"
+            formControlName="description"
+            maxlength="1000"
+          ></textarea>
+        </div>
+
+        <div class="row">
+          <div class="field" style="flex: 1 1 200px">
+            <label class="field__label" for="internalLocation">
+              Localização interna <span class="field__hint">(opcional)</span>
+            </label>
+            <input
+              id="internalLocation"
+              class="input"
+              formControlName="internalLocation"
+              maxlength="150"
+              placeholder="Bloco A, 2º andar…"
+            />
+          </div>
+          <div class="field" style="flex: 1 1 140px">
+            <label class="field__label" for="extension">
+              Ramal / telefone <span class="field__hint">(opcional)</span>
+            </label>
+            <input id="extension" class="input" formControlName="extension" maxlength="30" />
+          </div>
+          <div class="field" style="flex: 1 1 220px">
+            <label class="field__label" for="email">
+              E-mail do setor <span class="field__hint">(opcional)</span>
+            </label>
+            <input id="email" class="input" type="email" formControlName="email" maxlength="254" />
+            @if (invalid('email')) {
+              <span class="field__error">Informe um e-mail válido.</span>
+            }
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="responsible">
+            Responsável pelo setor <span class="field__hint">(opcional)</span>
+          </label>
+          @if (canUnits()) {
+            <select id="responsible" class="select" formControlName="responsibleEmployeeGuid">
+              <option value="">Sem responsável definido</option>
+              @for (person of staff(); track person.guid) {
+                <option [value]="person.guid">
+                  {{ person.name }} · {{ person.registrationNumber }}
+                </option>
+              }
+            </select>
+          } @else {
+            <p class="muted">
+              Sem a permissão <code>FUNCIONARIO_VISUALIZAR</code> não é possível escolher um
+              responsável.
+            </p>
+          }
+        </div>
+
+        <fieldset class="stack" style="border: 0; padding: 0; margin: 0; gap: 0.5rem">
+          <label class="row" style="align-items: center; gap: 0.5rem">
+            <input type="checkbox" formControlName="careRelated" />
+            <span>Setor assistencial (atuação direta ou indireta no atendimento de pacientes)</span>
+          </label>
+          <label class="row" style="align-items: center; gap: 0.5rem">
+            <input type="checkbox" formControlName="allowsScheduleAllocation" />
+            <span>Permite alocação de colaboradores em escala</span>
+          </label>
+          <label class="row" style="align-items: center; gap: 0.5rem">
+            <input type="checkbox" formControlName="allowsSharedActing" />
+            <span>Permite atuação compartilhada / multiunidade</span>
+          </label>
+        </fieldset>
+
+        @if (form.controls.allowsSharedActing.value) {
+          @if (isEdit()) {
+            <p class="muted">
+              As unidades atendidas são gerenciadas na tela de detalhe do setor, com histórico.
+            </p>
+          } @else {
+            <fieldset class="stack" formArrayName="servedUnits" style="border: 0; padding: 0; margin: 0">
+              <div class="row" style="justify-content: space-between; align-items: center">
+                <span class="field__label">Unidades atendidas (opcional)</span>
+                <button
+                  type="button"
+                  class="btn btn--ghost btn--sm"
+                  [disabled]="servedUnits.length >= maxServedUnits"
+                  (click)="addServedUnitRow()"
+                >
+                  Adicionar unidade
+                </button>
+              </div>
+              <span class="field__hint">
+                A unidade principal e unidades já escolhidas não aparecem nas demais linhas. Máximo de
+                {{ maxServedUnits }} unidades.
+              </span>
+              @for (row of servedUnits.controls; track $index) {
+                <div class="row" [formGroupName]="$index" style="align-items: flex-end">
+                  <div class="field" style="flex: 2 1 220px">
+                    <label class="field__label">
+                      Unidade
+                      <select class="select" formControlName="unitGuid">
+                        <option value="">Selecione…</option>
+                        @for (unit of optionsForRow($index); track unit.guid) {
+                          <option [value]="unit.guid">{{ unit.name }}</option>
+                        }
+                      </select>
+                    </label>
+                    @if (rowInvalid($index, 'unitGuid')) {
+                      <span class="field__error">Selecione a unidade atendida.</span>
+                    }
+                  </div>
+                  <div class="field" style="flex: 1 1 160px">
+                    <label class="field__label">
+                      Início
+                      <input class="input" type="date" formControlName="startDate" />
+                    </label>
+                    @if (rowInvalid($index, 'startDate')) {
+                      <span class="field__error">Informe a data de início.</span>
+                    }
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn--ghost btn--sm"
+                    (click)="removeServedUnitRow($index)"
+                  >
+                    Remover
+                  </button>
+                </div>
+              }
+              @if (servedUnits.errors?.['principalAsServed']) {
+                <span class="field__error">
+                  A unidade principal não pode ser informada como unidade atendida.
+                </span>
+              }
+              @if (servedUnits.errors?.['duplicateServed']) {
+                <span class="field__error">Cada unidade atendida só pode ser informada uma vez.</span>
+              }
+            </fieldset>
+          }
+        }
+      </div>
+
+      <div
+        class="card__header"
+        style="border-top: 1px solid var(--color-border); border-bottom: none"
+      >
+        <a class="btn btn--ghost" routerLink="/setores">Cancelar</a>
+        <button
+          type="submit"
+          class="btn btn--accent"
+          [disabled]="busy() || missingCatalogs().length > 0"
+        >
+          @if (busy()) {
+            <span class="spinner" aria-hidden="true"></span> Salvando…
+          } @else {
+            {{ isEdit() ? 'Salvar' : 'Cadastrar' }}
+          }
+        </button>
+      </div>
+    </form>
+  }
+</div>
