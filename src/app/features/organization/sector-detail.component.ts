@@ -43,6 +43,15 @@ export class SectorDetailComponent implements OnInit {
 
   /** "Editar" link mirrors the edit route guard (read state + write + category catalog). */
   protected readonly editSectorScreen = SECTOR_SCREENS.edit;
+  /**
+   * "Adicionar unidade atendida" needs `FUNCIONARIO_VISUALIZAR` on top of
+   * `SETOR_EDITAR` to load the unit `<select>`; without it the form is unusable,
+   * so it is hidden. "Encerrar" keeps requiring only `SETOR_EDITAR`.
+   */
+  protected readonly addServedUnitScreen = SECTOR_SCREENS.addServedUnit;
+  protected readonly canAddServedUnit = computed(() =>
+    this.store.hasAll(this.addServedUnitScreen),
+  );
 
   protected readonly sector = signal<SectorResponse | null>(null);
   protected readonly loading = signal(true);
@@ -121,7 +130,9 @@ export class SectorDetailComponent implements OnInit {
 
   protected addServedUnit(): void {
     const current = this.sector();
-    if (!current || this.servedUnitForm.invalid || this.busy()) {
+    // Defence in depth: the form is already hidden without this capability, but
+    // never fire the request if a programmatic caller reaches here anyway.
+    if (!current || !this.canAddServedUnit() || this.servedUnitForm.invalid || this.busy()) {
       this.servedUnitForm.markAllAsTouched();
       return;
     }

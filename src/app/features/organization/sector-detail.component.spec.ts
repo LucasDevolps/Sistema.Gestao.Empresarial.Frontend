@@ -11,8 +11,10 @@ import { OrganizationCatalogService } from './organization-catalog.service';
 
 interface DetailInternals {
   availableUnits(): { guid: string; name: string }[];
+  canAddServedUnit(): boolean;
   servedUnitForm: FormGroup<{ unitGuid: FormControl<string>; startDate: FormControl<string> }>;
   addServedUnit(): void;
+  endServedUnit(relationshipGuid: string): void;
   loadUnits(): void;
 }
 
@@ -74,22 +76,31 @@ function sectorResponse(): SectorResponse {
   };
 }
 
-describe('SectorDetailComponent — served-unit linking rules (task 3.3)', () => {
+const FULL = ['SETOR_VISUALIZAR', 'SETOR_EDITAR', 'FUNCIONARIO_VISUALIZAR'];
+const NO_STAFF = ['SETOR_VISUALIZAR', 'SETOR_EDITAR'];
+
+describe('SectorDetailComponent', () => {
   let fixture: ComponentFixture<SectorDetailComponent>;
   let c: DetailInternals;
   let addSectorServedUnit: jasmine.Spy;
+  let endSectorServedUnit: jasmine.Spy;
+  let listHospitalUnits: jasmine.Spy;
   let notifications: NotificationService;
 
-  beforeEach(() => {
+  function setup(permissions: string[]): void {
     addSectorServedUnit = jasmine
       .createSpy('addSectorServedUnit')
       .and.returnValue(of({ guid: 'new-link' }));
+    endSectorServedUnit = jasmine.createSpy('endSectorServedUnit').and.returnValue(of(undefined));
+    listHospitalUnits = jasmine
+      .createSpy('listHospitalUnits')
+      .and.returnValue(of({ items: UNITS, page: 1, pageSize: 100, total: UNITS.length }));
 
     const catalog: Partial<OrganizationCatalogService> = {
       getSector: () => of(sectorResponse()) as never,
-      listHospitalUnits: () =>
-        of({ items: UNITS, page: 1, pageSize: 100, total: UNITS.length }) as never,
+      listHospitalUnits: listHospitalUnits as never,
       addSectorServedUnit: addSectorServedUnit as never,
+      endSectorServedUnit: endSectorServedUnit as never,
       changeSectorStatus: jasmine
         .createSpy('changeSectorStatus')
         .and.returnValue(of(sectorResponse())) as never,
@@ -100,59 +111,102 @@ describe('SectorDetailComponent — served-unit linking rules (task 3.3)', () =>
       providers: [provideRouter([]), { provide: OrganizationCatalogService, useValue: catalog }],
     });
 
-    TestBed.inject(AuthStore).setIdentity(identity(['SETOR_VISUALIZAR', 'SETOR_EDITAR', 'FUNCIONARIO_VISUALIZAR']));
+    TestBed.inject(AuthStore).setIdentity(identity(permissions));
     notifications = TestBed.inject(NotificationService);
 
     fixture = TestBed.createComponent(SectorDetailComponent);
     fixture.componentRef.setInput('sectorGuid', 'sec-1');
     c = fixture.componentInstance as unknown as DetailInternals;
     fixture.detectChanges();
-    c.loadUnits();
-  });
+  }
 
-  it('offers neither the principal unit nor units with an active link', () => {
-    const guids = c.availableUnits().map((u) => u.guid);
-    expect(guids).not.toContain('u-a'); // principal
-    expect(guids).not.toContain('u-b'); // active link
-    expect(guids).toContain('u-c'); // link ended → selectable again
-  });
+  function query(selector: string): HTMLElement | null {
+    return fixture.nativeElement.querySelector(selector);
+  }
 
-  it('rejects adding the principal unit as a served unit', () => {
-    const warn = spyOn(notifications, 'warning');
-    c.servedUnitForm.setValue({ unitGuid: 'u-a', startDate: '2026-02-01' });
+  function buttonByText(text: string): HTMLButtonElement | undefined {
+    return Array.from(fixture.nativeElement.querySelectorAll('button')).find(
+      (b) => (b as HTMLElement).textContent?.trim() === text,
+    ) as HTMLButtonElement | undefined;
+  }
 
-    c.addServedUnit();
+  // ---- full capability: SETOR_VISUALIZAR + SETOR_EDITAR + FUNCIONARIO_VISUALIZAR ----
 
-    expect(addSectorServedUnit).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalled();
-  });
+  describe('with the full "add served unit" capability', () => {
+    beforeEach(() => setup(FULL));
 
-  it('rejects adding a unit that already has an active link', () => {
-    const warn = spyOn(notifications, 'warning');
-    c.servedUnitForm.setValue({ unitGuid: 'u-b', startDate: '2026-02-01' });
+    it('renders the "Adicionar unidade atendida" form', () => {
+      expect(c.canAddServedUnit()).toBe(true);
+      expect(query('#su-unit')).not.toBeNull();
+    });
 
-    c.addServedUnit();
+    it('loads the unit catalog for the select', () => {
+      c.loadUnits();
+      expect(listHospitalUnits).toHaveBeenCalledTimes(1);
+      expect(c.availableUnits().map((u) => u.guid)).toEqual(['u-c']); // u-a principal, u-b active
+    });
 
-    expect(addSectorServedUnit).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalled();
-  });
+    it('links a valid unit + date', () => {
+      c.loadUnits();
+      c.servedUnitForm.setValue({ unitGuid: 'u-c', startDate: '2026-02-01' });
+      c.addServedUnit();
+      expect(addSectorServedUnit).toHaveBeenCalledOnceWith('sec-1', {
+        unitGuid: 'u-c',
+        startDate: '2026-02-01',
+      });
+    });
 
-  it('allows adding a unit whose previous link was ended', () => {
-    c.servedUnitForm.setValue({ unitGuid: 'u-c', startDate: '2026-02-01' });
+    it('still rejects the principal unit and units with an active link', () => {
+      const warn = spyOn(notifications, 'warning');
+      c.servedUnitForm.setValue({ unitGuid: 'u-a', startDate: '2026-02-01' });
+      c.addServedUnit();
+      c.servedUnitForm.setValue({ unitGuid: 'u-b', startDate: '2026-02-01' });
+      c.addServedUnit();
+      expect(addSectorServedUnit).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledTimes(2);
+    });
 
-    c.addServedUnit();
-
-    expect(addSectorServedUnit).toHaveBeenCalledOnceWith('sec-1', {
-      unitGuid: 'u-c',
-      startDate: '2026-02-01',
+    it('does not link without a start date', () => {
+      c.servedUnitForm.setValue({ unitGuid: 'u-c', startDate: '' });
+      c.addServedUnit();
+      expect(addSectorServedUnit).not.toHaveBeenCalled();
     });
   });
 
-  it('does not add a served unit without a start date', () => {
-    c.servedUnitForm.setValue({ unitGuid: 'u-c', startDate: '' });
+  // ---- SETOR_EDITAR but NOT FUNCIONARIO_VISUALIZAR ----
 
-    c.addServedUnit();
+  describe('without FUNCIONARIO_VISUALIZAR', () => {
+    beforeEach(() => setup(NO_STAFF));
 
-    expect(addSectorServedUnit).not.toHaveBeenCalled();
+    it('still renders the sector detail', () => {
+      expect(query('.page__title')?.textContent).toContain('Farmácia Central');
+    });
+
+    it('hides the "Adicionar unidade atendida" form', () => {
+      expect(c.canAddServedUnit()).toBe(false);
+      expect(query('#su-unit')).toBeNull();
+    });
+
+    it('never calls listHospitalUnits, even if loadUnits() is invoked', () => {
+      c.loadUnits();
+      expect(listHospitalUnits).not.toHaveBeenCalled();
+    });
+
+    it('does not POST a served unit if addServedUnit() is invoked programmatically', () => {
+      c.servedUnitForm.setValue({ unitGuid: 'u-c', startDate: '2026-02-01' });
+      c.addServedUnit();
+      expect(addSectorServedUnit).not.toHaveBeenCalled();
+    });
+
+    it('still shows and runs "Encerrar" for an active link (only needs SETOR_EDITAR)', () => {
+      const btn = buttonByText('Encerrar');
+      expect(btn).withContext('Encerrar button should be visible').toBeDefined();
+
+      spyOn(window, 'prompt').and.returnValue('2026-06-01');
+      c.endServedUnit('link-active');
+      expect(endSectorServedUnit).toHaveBeenCalledOnceWith('sec-1', 'link-active', {
+        endDate: '2026-06-01',
+      });
+    });
   });
 });

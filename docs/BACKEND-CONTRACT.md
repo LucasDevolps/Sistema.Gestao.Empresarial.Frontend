@@ -2,14 +2,14 @@
 
 Fonte da verdade: código local em
 `C:\Users\lucas\source\repos\Sistema.Gestao.Empresarial.Backend`
-(branch `main`, HEAD `03ad790…`, que já contém o merge da PR #14
-`feature/frontend-support-endpoints`, commit `0a0505de…`).
+(branch `main`, HEAD `c49afcbdcb5d5665b5905a2a61fbfb3b04db92bf`, que já contém o
+merge da PR #71 `feature/gestao-setores-hospitalares` — CRUD de setores e
+catálogo de categorias de setor — sobre a base da PR #14
+`feature/frontend-support-endpoints`).
 
 Controllers confirmados no checkout: `Auth`, `Employees`, `HospitalUnits`,
 `Organizations`, `Positions`, `ProfessionalLevels`, `Professions`, `Sectors`,
-`SectorCategories`, `Users` — mais 3 health checks operacionais. O CRUD de
-setores e o catálogo de categorias de setor foram adicionados na branch
-`feature/gestao-setores-hospitalares`.
+`SectorCategories`, `Users` — mais 3 health checks operacionais.
 
 Nenhuma feature do frontend existe sem um endpoint real abaixo.
 
@@ -62,6 +62,13 @@ Nenhuma feature do frontend existe sem um endpoint real abaixo.
 | Nova categoria | `POST /api/categorias-setor` | `CATEGORIA_SETOR_CRIAR` |
 | Status de categoria | `PATCH /api/categorias-setor/{guid}/status` | `CATEGORIA_SETOR_EDITAR` |
 
+> A coluna **Permissão** é a autorização **real de cada endpoint** no backend
+> (`[RequirePermission(...)]`). Ela **não** muda: `POST /api/setores` exige
+> `SETOR_CRIAR` e só. As permissões extras que uma **tela composta** precisa para
+> funcionar (carregar catálogos etc.) estão na seção
+> [Guards de rota e capacidade de tela](#guards-de-rota-e-capacidade-de-tela) e
+> pertencem ao frontend, não ao endpoint.
+
 Organizações e unidades hospitalares seguem **somente leitura**. Setores e
 categorias de setor são **CRUD sem DELETE** — inativação, nunca exclusão física.
 
@@ -110,13 +117,63 @@ Não há botão “Excluir” em nenhuma dessas telas.
 setores; `SETOR_EDITAR` agora é consumida (editar setor, status e unidades
 atendidas).
 
-O guard fica em **cada rota folha**, com a permissão exata do endpoint
-(`/setores` → `SETOR_VISUALIZAR`, `/setores/novo` → `SETOR_CRIAR`,
-`/setores/:guid/editar` → `SETOR_EDITAR`). O caminho pai `/setores` usa
-`permissionGuardAny(SETOR_VISUALIZAR, SETOR_CRIAR, SETOR_EDITAR)` — apenas
-"tem algum acesso a setor" — para não exigir `SETOR_VISUALIZAR` como
-pré‑requisito de criar/editar (o backend não exige). Mesma estrutura para
-`/categorias-setor`.
+## Guards de rota e capacidade de tela
+
+**Permissão individual do endpoint** — o que o backend exige em cada rota HTTP
+(`[RequirePermission]`). É a barreira de segurança e está na coluna *Permissão*
+das tabelas acima. Nunca é ampliada pelo frontend.
+
+**Capacidade completa da tela** — a união de **todas** as permissões que uma tela
+(ou uma funcionalidade dentro dela) precisa para ser utilizável de ponta a ponta,
+incluindo os `GET` de catálogo que populam selects. É maior ou igual à permissão
+do endpoint de escrita e existe só para **evitar dead-ends de UX**: não abrir uma
+tela que não consegue carregar seus dados obrigatórios, e esconder botões que
+levariam a uma operação impossível de concluir.
+
+Definição central e tipada em `core/auth/screen-permissions.ts`
+(`SECTOR_SCREENS`, `SECTOR_CATEGORY_SCREENS`), consumida por rotas, menu, botões
+de entrada e testes:
+
+| Tela / ação (frontend) | Capacidade exigida | Endpoints que a tela consome |
+|---|---|---|
+| Visualizar setor (lista, detalhe) | `SETOR_VISUALIZAR` | `GET /api/setores`, `GET /api/setores/{guid}` |
+| Criar setor (`/setores/novo`) | `SETOR_CRIAR` + `FUNCIONARIO_VISUALIZAR` + `CATEGORIA_SETOR_VISUALIZAR` | `POST /api/setores` + `GET /api/unidades-hospitalares` + `GET /api/categorias-setor` |
+| Editar setor (`/setores/:guid/editar`) | `SETOR_VISUALIZAR` + `SETOR_EDITAR` + `CATEGORIA_SETOR_VISUALIZAR` | `GET /api/setores/{guid}` + `PUT /api/setores/{guid}` + `GET /api/categorias-setor` |
+| Adicionar unidade atendida (form no detalhe) | `SETOR_VISUALIZAR` + `SETOR_EDITAR` + `FUNCIONARIO_VISUALIZAR` | `GET /api/setores/{guid}` + `GET /api/unidades-hospitalares` + `POST /api/setores/{guid}/unidades-atendidas` |
+| Encerrar unidade atendida (ação no detalhe) | `SETOR_VISUALIZAR` + `SETOR_EDITAR` | `GET /api/setores/{guid}` (o vínculo já veio aqui) + `POST /api/setores/{guid}/unidades-atendidas/{rel}/encerrar` |
+| Visualizar categorias (lista) | `CATEGORIA_SETOR_VISUALIZAR` | `GET /api/categorias-setor` |
+| Criar categoria (`/categorias-setor/nova`) | `CATEGORIA_SETOR_CRIAR` | `POST /api/categorias-setor` (sem `GET` obrigatório) |
+| Editar categoria (`/categorias-setor/:guid/editar`) | `CATEGORIA_SETOR_VISUALIZAR` + `CATEGORIA_SETOR_EDITAR` | `GET /api/categorias-setor/{guid}` + `PUT /api/categorias-setor/{guid}` |
+
+Notas:
+
+- **Editar setor não exige `FUNCIONARIO_VISUALIZAR`**: a lista de funcionários só
+  serve para (opcionalmente) trocar o responsável; sem ela o formulário opera e
+  exibe um aviso.
+- **Encerrar unidade atendida não exige `FUNCIONARIO_VISUALIZAR`** só por dividir
+  o mesmo bloco visual do "adicionar". O vínculo a encerrar já chegou em
+  `GET /api/setores/{guid}` e a ação não consulta o catálogo de unidades. O form
+  de "adicionar" é escondido independentemente, via `SECTOR_SCREENS.addServedUnit`.
+- **Criar categoria não exige leitura**: `POST /api/categorias-setor` não depende
+  de nenhum `GET` para renderizar o formulário.
+
+Guards: cada rota folha usa `permissionGuard(...capacidade)` (exige **todas**).
+O caminho pai `/setores` (e `/categorias-setor`) usa `permissionGuardAny(...)` —
+"tem alguma capacidade na área" — só para não carregar o chunk de quem não tem
+acesso nenhum; ele não mascara as dependências, pois a folha revalida o conjunto
+completo. O menu aponta para a lista de cada área e é gated pela capacidade
+`view`.
+
+## Fonte de verdade da autorização
+
+- **Backend = autoridade de segurança.** Todo endpoint é protegido por
+  `[RequirePermission]`; qualquer requisição sem a permissão real recebe `403`,
+  independentemente do que o frontend permitiu clicar.
+- **Frontend = navegação e UX.** Guards, menu e botões usam as permissões
+  **efetivas** retornadas por `GET /api/auth/me` (via `AuthStore`, nunca claims
+  do JWT), em modo deny-by-default. As *capacidades de tela* servem só para
+  impedir dead-ends e ocultar operações que o usuário não conseguiria concluir —
+  **não** substituem nem relaxam a autorização do backend.
 
 ## Regras comuns aplicadas
 

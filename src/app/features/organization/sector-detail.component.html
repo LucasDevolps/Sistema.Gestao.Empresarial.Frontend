@@ -131,7 +131,7 @@
             </tbody>
           </table>
         </div>
-        <div class="card__body" *appHasPermission="'SETOR_EDITAR'">
+        <div class="card__body" *appHasPermission="addServedUnitScreen">
           <form class="row" [formGroup]="servedUnitForm" (ngSubmit)="addServedUnit()">
             <div class="field" style="flex: 2 1 220px">
               <label class="field__label" for="su-unit">Adicionar unidade atendida</label>
