@@ -17,7 +17,7 @@ import {
   UpdateEmployeeRequest,
 } from '../../core/models/employee.models';
 import { PositionResponse, ProfessionResponse, ProfessionalLevelResponse } from '../../core/models/catalog.models';
-import { HospitalUnitResponse, SectorResponse } from '../../core/models/organization.models';
+import { HospitalUnitResponse, SectorSummaryResponse } from '../../core/models/organization.models';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { ProfessionalCatalogService } from '../catalogs/professional-catalog.service';
 import { OrganizationCatalogService } from '../organization/organization-catalog.service';
@@ -51,7 +51,7 @@ export class EmployeeFormComponent implements OnInit {
   protected readonly positions = signal<PositionResponse[]>([]);
   protected readonly levels = signal<ProfessionalLevelResponse[]>([]);
   protected readonly units = signal<HospitalUnitResponse[]>([]);
-  protected readonly sectors = signal<SectorResponse[]>([]);
+  protected readonly sectors = signal<SectorSummaryResponse[]>([]);
 
   protected readonly canProfessions = computed(() => this.store.hasPermission('PROFISSAO_VISUALIZAR'));
   protected readonly canPositions = computed(() => this.store.hasPermission('CARGO_VISUALIZAR'));

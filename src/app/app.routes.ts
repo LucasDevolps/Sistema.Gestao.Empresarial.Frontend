@@ -62,6 +62,14 @@ export const routes: Routes = [
           import('./features/organization/sectors.routes').then((m) => m.SECTORS_ROUTES),
       },
       {
+        path: 'categorias-setor',
+        canMatch: [permissionGuard('CATEGORIA_SETOR_VISUALIZAR')],
+        loadChildren: () =>
+          import('./features/organization/sector-categories.routes').then(
+            (m) => m.SECTOR_CATEGORIES_ROUTES,
+          ),
+      },
+      {
         path: 'usuarios',
         canMatch: [permissionGuard('USUARIO_GERENCIAR_PERMISSOES')],
         loadChildren: () => import('./features/users/users.routes').then((m) => m.USERS_ROUTES),

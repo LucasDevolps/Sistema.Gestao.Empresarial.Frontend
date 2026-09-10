@@ -1,0 +1,157 @@
+<div class="page stack">
+  @if (loading()) {
+    <div class="empty-state"><span class="spinner"></span> Carregando…</div>
+  } @else if (error()) {
+    <div class="card">
+      <div class="card__body">
+        <p role="alert">{{ error() }}</p>
+        <a class="btn btn--ghost" routerLink="/setores">Voltar</a>
+      </div>
+    </div>
+  } @else if (sector(); as s) {
+    <header class="page__head">
+      <div>
+        <h1 class="page__title">{{ s.sigla }} — {{ s.name }}</h1>
+        <p class="page__subtitle">
+          {{ s.unit.name }} · {{ s.category.name }} · <app-status-badge [active]="s.active" />
+        </p>
+      </div>
+      <div class="row" style="align-items: center">
+        <a
+          *appHasPermission="'SETOR_EDITAR'"
+          class="btn btn--ghost"
+          [routerLink]="['/setores', s.guid, 'editar']"
+        >
+          Editar
+        </a>
+        <button
+          *appHasPermission="'SETOR_EDITAR'"
+          type="button"
+          class="btn"
+          [class.btn--danger]="s.active"
+          [disabled]="busy()"
+          (click)="toggleStatus()"
+        >
+          {{ s.active ? 'Inativar' : 'Reativar' }}
+        </button>
+        <a class="btn btn--ghost" routerLink="/setores">Voltar</a>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="card__body grid-2">
+        <div>
+          <h2>Identificação</h2>
+          <dl class="facts">
+            <div><dt>Sigla</dt><dd>{{ s.sigla }}</dd></div>
+            <div><dt>Nome</dt><dd>{{ s.name }}</dd></div>
+            <div><dt>Unidade principal</dt><dd>{{ s.unit.name }}</dd></div>
+            <div><dt>Categoria</dt><dd>{{ s.category.name }}</dd></div>
+            <div><dt>Descrição</dt><dd>{{ s.description || '—' }}</dd></div>
+          </dl>
+        </div>
+        <div>
+          <h2>Contato e regras</h2>
+          <dl class="facts">
+            <div><dt>Localização interna</dt><dd>{{ s.internalLocation || '—' }}</dd></div>
+            <div><dt>Ramal / telefone</dt><dd>{{ s.extension || '—' }}</dd></div>
+            <div><dt>E-mail</dt><dd>{{ s.email || '—' }}</dd></div>
+            <div>
+              <dt>Responsável</dt>
+              <dd>
+                @if (s.responsible) {
+                  {{ s.responsible.name }} · {{ s.responsible.registrationNumber }}
+                } @else {
+                  —
+                }
+              </dd>
+            </div>
+            <div><dt>Setor assistencial</dt><dd>{{ s.careRelated ? 'Sim' : 'Não' }}</dd></div>
+            <div>
+              <dt>Permite alocação em escala</dt>
+              <dd>{{ s.allowsScheduleAllocation ? 'Sim' : 'Não' }}</dd>
+            </div>
+            <div>
+              <dt>Atuação compartilhada</dt>
+              <dd>{{ s.allowsSharedActing ? 'Sim' : 'Não' }}</dd>
+            </div>
+            <div><dt>Criado em</dt><dd>{{ s.createdAt | date: 'short' }}</dd></div>
+            <div><dt>Atualizado em</dt><dd>{{ s.updatedAt | date: 'short' }}</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    @if (s.allowsSharedActing) {
+      <section class="card">
+        <div class="card__header"><h2>Unidades atendidas</h2></div>
+        <div class="table-wrap" style="border: none">
+          <table class="data">
+            <thead>
+              <tr>
+                <th scope="col">Unidade</th>
+                <th scope="col">Início</th>
+                <th scope="col">Fim</th>
+                <th scope="col">Situação</th>
+                <th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (link of s.servedUnits; track link.guid) {
+                <tr>
+                  <td>{{ link.unitName }}</td>
+                  <td>{{ link.startDate | dateOnly }}</td>
+                  <td>{{ link.endDate ? (link.endDate | dateOnly) : '—' }}</td>
+                  <td>
+                    <app-status-badge
+                      [active]="link.active"
+                      activeLabel="Vigente"
+                      inactiveLabel="Encerrada"
+                    />
+                  </td>
+                  <td>
+                    @if (link.active) {
+                      <button
+                        *appHasPermission="'SETOR_EDITAR'"
+                        type="button"
+                        class="btn btn--ghost btn--sm"
+                        [disabled]="busy()"
+                        (click)="endServedUnit(link.guid)"
+                      >
+                        Encerrar
+                      </button>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5"><div class="empty-state">Nenhuma unidade atendida.</div></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="card__body" *appHasPermission="'SETOR_EDITAR'">
+          <form class="row" [formGroup]="servedUnitForm" (ngSubmit)="addServedUnit()">
+            <div class="field" style="flex: 2 1 220px">
+              <label class="field__label" for="su-unit">Adicionar unidade atendida</label>
+              <select id="su-unit" class="select" formControlName="unitGuid" (focus)="loadUnits()">
+                <option value="">Selecione…</option>
+                @for (unit of units(); track unit.guid) {
+                  <option [value]="unit.guid">{{ unit.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="field" style="flex: 1 1 160px">
+              <label class="field__label" for="su-start">Início</label>
+              <input id="su-start" class="input" type="date" formControlName="startDate" />
+            </div>
+            <button type="submit" class="btn" [disabled]="busy() || servedUnitForm.invalid">
+              Vincular
+            </button>
+          </form>
+        </div>
+      </section>
+    }
+  }
+</div>

@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { AuthStore } from '../../core/auth/auth-store';
 import { describeFieldErrors, toApiError } from '../../core/http/api-error';
 import { EmployeeResponse } from '../../core/models/employee.models';
-import { HospitalUnitResponse, SectorResponse } from '../../core/models/organization.models';
+import { HospitalUnitResponse, SectorSummaryResponse } from '../../core/models/organization.models';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
 import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
@@ -43,7 +43,7 @@ export class EmployeeDetailComponent implements OnInit {
 
   protected readonly canViewSectors = computed(() => this.store.hasPermission('SETOR_VISUALIZAR'));
   protected readonly units = signal<HospitalUnitResponse[]>([]);
-  protected readonly sectors = signal<SectorResponse[]>([]);
+  protected readonly sectors = signal<SectorSummaryResponse[]>([]);
 
   protected readonly actingUnitForm = new FormGroup({
     unitGuid: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),

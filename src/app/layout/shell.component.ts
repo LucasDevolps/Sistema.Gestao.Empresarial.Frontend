@@ -27,6 +27,11 @@ const NAV_ITEMS: readonly NavItem[] = [
   },
   { label: 'Setores', path: '/setores', permissions: ['SETOR_VISUALIZAR'] },
   {
+    label: 'Categorias de setor',
+    path: '/categorias-setor',
+    permissions: ['CATEGORIA_SETOR_VISUALIZAR'],
+  },
+  {
     label: 'Usuários e permissões',
     path: '/usuarios',
     permissions: ['USUARIO_GERENCIAR_PERMISSOES'],
