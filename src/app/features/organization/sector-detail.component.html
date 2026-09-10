@@ -137,10 +137,13 @@
               <label class="field__label" for="su-unit">Adicionar unidade atendida</label>
               <select id="su-unit" class="select" formControlName="unitGuid" (focus)="loadUnits()">
                 <option value="">Selecione…</option>
-                @for (unit of units(); track unit.guid) {
+                @for (unit of availableUnits(); track unit.guid) {
                   <option [value]="unit.guid">{{ unit.name }}</option>
                 }
               </select>
+              <span class="field__hint">
+                A unidade principal e unidades com vínculo ativo não são listadas.
+              </span>
             </div>
             <div class="field" style="flex: 1 1 160px">
               <label class="field__label" for="su-start">Início</label>

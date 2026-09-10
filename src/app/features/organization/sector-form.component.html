@@ -190,6 +190,10 @@
                   Adicionar unidade
                 </button>
               </div>
+              <span class="field__hint">
+                A unidade principal e unidades já escolhidas não aparecem nas demais linhas. Máximo de
+                {{ maxServedUnits }} unidades.
+              </span>
               @for (row of servedUnits.controls; track $index) {
                 <div class="row" [formGroupName]="$index" style="align-items: flex-end">
                   <div class="field" style="flex: 2 1 220px">
@@ -197,17 +201,23 @@
                       Unidade
                       <select class="select" formControlName="unitGuid">
                         <option value="">Selecione…</option>
-                        @for (unit of units(); track unit.guid) {
+                        @for (unit of optionsForRow($index); track unit.guid) {
                           <option [value]="unit.guid">{{ unit.name }}</option>
                         }
                       </select>
                     </label>
+                    @if (rowInvalid($index, 'unitGuid')) {
+                      <span class="field__error">Selecione a unidade atendida.</span>
+                    }
                   </div>
                   <div class="field" style="flex: 1 1 160px">
                     <label class="field__label">
                       Início
                       <input class="input" type="date" formControlName="startDate" />
                     </label>
+                    @if (rowInvalid($index, 'startDate')) {
+                      <span class="field__error">Informe a data de início.</span>
+                    }
                   </div>
                   <button
                     type="button"
@@ -217,6 +227,14 @@
                     Remover
                   </button>
                 </div>
+              }
+              @if (servedUnits.errors?.['principalAsServed']) {
+                <span class="field__error">
+                  A unidade principal não pode ser informada como unidade atendida.
+                </span>
+              }
+              @if (servedUnits.errors?.['duplicateServed']) {
+                <span class="field__error">Cada unidade atendida só pode ser informada uma vez.</span>
               }
             </fieldset>
           }

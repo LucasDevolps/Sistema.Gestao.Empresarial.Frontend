@@ -1,5 +1,13 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthStore } from '../../core/auth/auth-store';
@@ -41,6 +49,25 @@ export class SectorDetailComponent implements OnInit {
   protected readonly servedUnitForm = new FormGroup({
     unitGuid: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
     startDate: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+  });
+
+  /**
+   * Units that may still be linked: excludes the principal unit and any unit
+   * with an *active* link. Ended links stay in the history table but their unit
+   * becomes selectable again (the backend allows re-linking). Section 3.3.
+   */
+  protected readonly availableUnits = computed(() => {
+    const current = this.sector();
+    if (!current) {
+      return [] as HospitalUnitResponse[];
+    }
+    const blocked = new Set<string>([current.unit.guid]);
+    for (const link of current.servedUnits) {
+      if (link.active) {
+        blocked.add(link.unitGuid);
+      }
+    }
+    return this.units().filter((unit) => !blocked.has(unit.guid));
   });
 
   ngOnInit(): void {
@@ -92,6 +119,19 @@ export class SectorDetailComponent implements OnInit {
     const current = this.sector();
     if (!current || this.servedUnitForm.invalid || this.busy()) {
       this.servedUnitForm.markAllAsTouched();
+      return;
+    }
+    const chosen = this.servedUnitForm.controls.unitGuid.value;
+    const isPrincipal = chosen === current.unit.guid;
+    const alreadyActive = current.servedUnits.some(
+      (link) => link.active && link.unitGuid === chosen,
+    );
+    if (isPrincipal || alreadyActive) {
+      this.notifications.warning(
+        isPrincipal
+          ? 'A unidade principal não pode ser adicionada como unidade atendida.'
+          : 'Esta unidade já possui um vínculo ativo neste setor.',
+      );
       return;
     }
     this.busy.set(true);

@@ -14,6 +14,17 @@ export interface ProblemDetails {
   instance?: string;
   /** Safe diagnostic identifier surfaced by the backend middleware. */
   correlationId?: string;
+  /**
+   * Stable, machine-readable error code the frontend can branch on without
+   * parsing `title`/`detail`. Currently emitted for business-key conflicts
+   * (`DUPLICATE_BUSINESS_KEY`, on a 409). See `GlobalExceptionHandler` (backend).
+   */
+  code?: string;
+  /**
+   * Public-contract field in conflict for a `DUPLICATE_BUSINESS_KEY` (e.g.
+   * `"name"`, `"sigla"`, `"email"`). Never a column/index/constraint name.
+   */
+  field?: string;
   /** Present on 400 validation responses (ValidationProblemDetails). */
   errors?: Record<string, string[]>;
 }

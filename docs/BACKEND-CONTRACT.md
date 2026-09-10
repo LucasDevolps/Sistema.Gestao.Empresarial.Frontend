@@ -110,6 +110,14 @@ Não há botão “Excluir” em nenhuma dessas telas.
 setores; `SETOR_EDITAR` agora é consumida (editar setor, status e unidades
 atendidas).
 
+O guard fica em **cada rota folha**, com a permissão exata do endpoint
+(`/setores` → `SETOR_VISUALIZAR`, `/setores/novo` → `SETOR_CRIAR`,
+`/setores/:guid/editar` → `SETOR_EDITAR`). O caminho pai `/setores` usa
+`permissionGuardAny(SETOR_VISUALIZAR, SETOR_CRIAR, SETOR_EDITAR)` — apenas
+"tem algum acesso a setor" — para não exigir `SETOR_VISUALIZAR` como
+pré‑requisito de criar/editar (o backend não exige). Mesma estrutura para
+`/categorias-setor`.
+
 ## Regras comuns aplicadas
 
 - `page` 1..1.000.000, `pageSize` 1..100, padrões `page=1`/`pageSize=50` (a UI usa 20). Parâmetros vazios são omitidos (`core/http/http-params.ts`).
@@ -117,4 +125,5 @@ atendidas).
 - `search` máx.: 200 (funcionários/unidades), 150 (profissões/cargos/setores), 120 (categorias de setor), 254 (usuários).
 - Datas `DateOnly` trafegam como `YYYY-MM-DD` sem conversão de fuso (`<input type="date">` + `DateOnlyPipe`).
 - Status HTTP: 400 validação, 401 sessão, 403 permissão/escopo, 404 ausente/oculto por tenant, 409 concorrência, 422 regra de domínio, 429 rate limit — mapeados em `core/http/api-error.ts`.
+- `409` distingue dois casos pelo campo estável `code` do `ProblemDetails`: `DUPLICATE_BUSINESS_KEY` (chave de negócio duplicada — mensagem derivada do `field` `name`/`sigla`/`email`, ou do `detail` seguro do backend, nunca de detalhes de infraestrutura) versus qualquer outro `409` sem `code` (conflito de concorrência otimista, mensagem genérica de "recarregue e tente de novo"). `code`, `field` e `detail` ficam disponíveis em `ApiError`; `correlationId` é preservado.
 - Sem retry genérico de 401/403/409/422/429; a única recuperação de 401 é o refresh controlado com no máximo uma repetição de `GET`.
