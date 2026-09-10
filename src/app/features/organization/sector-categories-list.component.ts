@@ -10,6 +10,7 @@ import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { debounceTime } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { SECTOR_CATEGORY_SCREENS } from '../../core/auth/screen-permissions';
 import { toApiError } from '../../core/http/api-error';
 import { DEFAULT_PAGE_SIZE } from '../../core/models/api.models';
 import { SectorCategoryResponse } from '../../core/models/organization.models';
@@ -90,7 +91,7 @@ import { OrganizationCatalogService } from './organization-catalog.service';
                 <td><app-status-badge [active]="row.active" /></td>
                 <td>
                   <a
-                    *appHasPermission="'CATEGORIA_SETOR_EDITAR'"
+                    *appHasPermission="editCategoryScreen"
                     class="btn btn--ghost btn--sm"
                     [routerLink]="[row.guid, 'editar']"
                   >
@@ -124,6 +125,9 @@ export class SectorCategoriesListComponent implements OnInit {
   private readonly service = inject(OrganizationCatalogService);
   private readonly notifications = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
+
+  /** "Editar" mirrors the route guard: reads the record and then writes it. */
+  protected readonly editCategoryScreen = SECTOR_CATEGORY_SCREENS.edit;
 
   protected readonly pageSize = DEFAULT_PAGE_SIZE;
   protected readonly page = signal(1);

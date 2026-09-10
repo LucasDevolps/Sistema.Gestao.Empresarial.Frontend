@@ -11,6 +11,7 @@ import {
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthStore } from '../../core/auth/auth-store';
+import { SECTOR_SCREENS } from '../../core/auth/screen-permissions';
 import { describeFieldErrors, toApiError } from '../../core/http/api-error';
 import { HospitalUnitResponse, SectorResponse } from '../../core/models/organization.models';
 import { NotificationService } from '../../core/notifications/notification.service';
@@ -39,6 +40,9 @@ export class SectorDetailComponent implements OnInit {
   private readonly store = inject(AuthStore);
 
   readonly sectorGuid = input.required<string>();
+
+  /** "Editar" link mirrors the edit route guard (read state + write + category catalog). */
+  protected readonly editSectorScreen = SECTOR_SCREENS.edit;
 
   protected readonly sector = signal<SectorResponse | null>(null);
   protected readonly loading = signal(true);

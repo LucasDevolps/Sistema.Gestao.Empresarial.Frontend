@@ -1,32 +1,34 @@
 import { Routes } from '@angular/router';
 import { permissionGuard } from '../../core/auth/guards';
+import { SECTOR_SCREENS } from '../../core/auth/screen-permissions';
 
 /**
- * Each route carries the exact permission its backend endpoint enforces
- * (`SectorsController`): list/detail → `SETOR_VISUALIZAR`, create → `SETOR_CRIAR`,
- * update/status/served-units → `SETOR_EDITAR`. Guards are declared per leaf so a
- * user with only `SETOR_CRIAR` can still reach `/setores/novo` — the parent path
- * in `app.routes.ts` only checks for *some* sector access.
+ * Each route requires the full capability of the screen it opens, not just the
+ * permission of its write endpoint (see `screen-permissions.ts`): list/detail
+ * only read, but "novo" and "editar" also load the unit and category catalogs,
+ * so the guard demands those read permissions up front instead of letting the
+ * user reach a form that cannot populate itself. The `/setores` parent path in
+ * `app.routes.ts` still only checks for *some* sector access.
  */
 export const SECTORS_ROUTES: Routes = [
   {
     path: '',
-    canMatch: [permissionGuard('SETOR_VISUALIZAR')],
+    canMatch: [permissionGuard(...SECTOR_SCREENS.view)],
     loadComponent: () => import('./sectors-list.component').then((m) => m.SectorsListComponent),
   },
   {
     path: 'novo',
-    canMatch: [permissionGuard('SETOR_CRIAR')],
+    canMatch: [permissionGuard(...SECTOR_SCREENS.create)],
     loadComponent: () => import('./sector-form.component').then((m) => m.SectorFormComponent),
   },
   {
     path: ':sectorGuid/editar',
-    canMatch: [permissionGuard('SETOR_EDITAR')],
+    canMatch: [permissionGuard(...SECTOR_SCREENS.edit)],
     loadComponent: () => import('./sector-form.component').then((m) => m.SectorFormComponent),
   },
   {
     path: ':sectorGuid',
-    canMatch: [permissionGuard('SETOR_VISUALIZAR')],
+    canMatch: [permissionGuard(...SECTOR_SCREENS.view)],
     loadComponent: () => import('./sector-detail.component').then((m) => m.SectorDetailComponent),
   },
 ];

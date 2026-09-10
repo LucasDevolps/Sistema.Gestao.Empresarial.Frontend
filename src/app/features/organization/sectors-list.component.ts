@@ -12,6 +12,7 @@ import { RouterLink } from '@angular/router';
 import { debounceTime } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthStore } from '../../core/auth/auth-store';
+import { SECTOR_SCREENS } from '../../core/auth/screen-permissions';
 import { toApiError } from '../../core/http/api-error';
 import { DEFAULT_PAGE_SIZE } from '../../core/models/api.models';
 import {
@@ -46,7 +47,12 @@ import { OrganizationCatalogService } from './organization-catalog.service';
             exclusão física.
           </p>
         </div>
-        <a *appHasPermission="'SETOR_CRIAR'" class="btn btn--accent" routerLink="novo">Novo setor</a>
+        <a
+          *appHasPermission="createSectorScreen"
+          class="btn btn--accent"
+          routerLink="novo"
+          >Novo setor</a
+        >
       </header>
 
       <form class="card" [formGroup]="filters">
@@ -121,7 +127,7 @@ import { OrganizationCatalogService } from './organization-catalog.service';
                 <td><app-status-badge [active]="sector.active" /></td>
                 <td>
                   <a
-                    *appHasPermission="'SETOR_EDITAR'"
+                    *appHasPermission="editSectorScreen"
                     class="btn btn--ghost btn--sm"
                     [routerLink]="[sector.guid, 'editar']"
                   >
@@ -156,6 +162,10 @@ export class SectorsListComponent implements OnInit {
   private readonly notifications = inject(NotificationService);
   private readonly store = inject(AuthStore);
   private readonly destroyRef = inject(DestroyRef);
+
+  /** Entry controls mirror the route guards: full screen capability, not just the write code. */
+  protected readonly createSectorScreen = SECTOR_SCREENS.create;
+  protected readonly editSectorScreen = SECTOR_SCREENS.edit;
 
   protected readonly pageSize = DEFAULT_PAGE_SIZE;
   protected readonly page = signal(1);

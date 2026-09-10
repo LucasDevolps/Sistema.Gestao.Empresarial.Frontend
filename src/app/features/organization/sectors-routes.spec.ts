@@ -1,16 +1,25 @@
 import { TestBed } from '@angular/core/testing';
-import { CanMatchFn, Route, Routes, UrlSegment, UrlTree, provideRouter } from '@angular/router';
+import {
+  CanMatchFn,
+  Route,
+  Router,
+  Routes,
+  UrlSegment,
+  UrlTree,
+  provideRouter,
+} from '@angular/router';
 import { CurrentUserResponse } from '../../core/models/auth.models';
 import { AuthStore } from '../../core/auth/auth-store';
+import { SECTOR_CATEGORY_SCREENS, SECTOR_SCREENS } from '../../core/auth/screen-permissions';
 import { routes as appRoutes } from '../../app.routes';
 import { SECTORS_ROUTES } from './sectors.routes';
 import { SECTOR_CATEGORIES_ROUTES } from './sector-categories.routes';
 
 /**
- * The frontend guards must reproduce — never widen — the authorization the
- * backend enforces. `POST /api/setores` requires only `SETOR_CRIAR`, so a user
- * holding just that code must be able to match `/setores/novo`; the shared
- * `/setores` parent path must not add `SETOR_VISUALIZAR` on top.
+ * Route guards must reproduce the authorization needed for the *whole screen* to
+ * work — every endpoint it depends on — not just the write endpoint. The "novo"
+ * and "editar" screens load the unit/category catalogs, so their guards demand
+ * those read permissions too.
  */
 function identity(permissions: string[]): CurrentUserResponse {
   return {
@@ -42,7 +51,15 @@ function leaf(routes: Routes, path: string): Route {
   return found;
 }
 
-describe('sector routes — permissions mirror the backend, without stacking', () => {
+/** Every subset of `codes` with exactly one element removed. */
+function withoutEach(codes: readonly string[]): { missing: string; rest: string[] }[] {
+  return codes.map((missing) => ({
+    missing,
+    rest: codes.filter((code) => code !== missing),
+  }));
+}
+
+describe('sector routes — guards require the full screen capability', () => {
   let store: AuthStore;
 
   beforeEach(() => {
@@ -67,45 +84,88 @@ describe('sector routes — permissions mirror the backend, without stacking', (
     );
   }
 
-  // ---- parent path only checks for *some* access -------------------------
+  // ---- the capability map matches the backend endpoints -----------------
 
-  it('/setores parent matches for a user with only SETOR_CRIAR', () => {
+  it('screen-permission constants only reference real PermissionCode values', () => {
+    // `screen-permissions.ts` uses `satisfies Record<string, readonly PermissionCode[]>`,
+    // so a fictional code would already be a compile error; this pins the sets.
+    expect(SECTOR_SCREENS.view).toEqual(['SETOR_VISUALIZAR']);
+    expect(SECTOR_SCREENS.create).toEqual([
+      'SETOR_CRIAR',
+      'FUNCIONARIO_VISUALIZAR',
+      'CATEGORIA_SETOR_VISUALIZAR',
+    ]);
+    expect(SECTOR_SCREENS.edit).toEqual([
+      'SETOR_VISUALIZAR',
+      'SETOR_EDITAR',
+      'CATEGORIA_SETOR_VISUALIZAR',
+    ]);
+    expect(SECTOR_CATEGORY_SCREENS.view).toEqual(['CATEGORIA_SETOR_VISUALIZAR']);
+    expect(SECTOR_CATEGORY_SCREENS.create).toEqual(['CATEGORIA_SETOR_CRIAR']);
+    expect(SECTOR_CATEGORY_SCREENS.edit).toEqual([
+      'CATEGORIA_SETOR_VISUALIZAR',
+      'CATEGORIA_SETOR_EDITAR',
+    ]);
+  });
+
+  // ---- parent path only checks for *some* access -----------------------
+
+  it('/setores parent matches for any single sector permission', () => {
     store.setIdentity(identity(['SETOR_CRIAR']));
     expect(allows(featureRoute('setores'))).toBe(true);
   });
 
-  it('/setores parent is blocked for a user with no sector permission at all', () => {
+  it('/setores parent is blocked with no sector permission at all', () => {
     store.setIdentity(identity(['FUNCIONARIO_VISUALIZAR']));
     expect(blocks(featureRoute('setores'))).toBe(true);
   });
 
-  it('/categorias-setor parent matches for a user with only CATEGORIA_SETOR_CRIAR', () => {
+  it('/categorias-setor parent matches for any single category permission', () => {
     store.setIdentity(identity(['CATEGORIA_SETOR_CRIAR']));
     expect(allows(featureRoute('categorias-setor'))).toBe(true);
   });
 
-  // ---- sector leaves use the exact endpoint permission -----------------
+  // ---- create sector: needs write + both catalogs ---------------------
 
-  it('a user with SETOR_CRIAR (and not SETOR_VISUALIZAR) can reach /setores/novo', () => {
-    store.setIdentity(identity(['SETOR_CRIAR']));
+  it('grants /setores/novo with the full create capability', () => {
+    store.setIdentity(identity([...SECTOR_SCREENS.create]));
     expect(allows(leaf(SECTORS_ROUTES, 'novo'))).toBe(true);
   });
 
-  it('a user without SETOR_CRIAR cannot reach /setores/novo', () => {
-    store.setIdentity(identity(['SETOR_VISUALIZAR', 'SETOR_EDITAR']));
-    expect(blocks(leaf(SECTORS_ROUTES, 'novo'))).toBe(true);
+  it('blocks /setores/novo when any one create permission is missing', () => {
+    for (const { missing, rest } of withoutEach(SECTOR_SCREENS.create)) {
+      store.setIdentity(identity(rest));
+      expect(blocks(leaf(SECTORS_ROUTES, 'novo')))
+        .withContext(`missing ${missing}`)
+        .toBe(true);
+    }
   });
 
-  it('editing a sector requires SETOR_EDITAR', () => {
-    store.setIdentity(identity(['SETOR_EDITAR']));
+  // ---- edit sector: read state + write + category catalog ------------
+
+  it('grants /setores/:guid/editar with the full edit capability', () => {
+    store.setIdentity(identity([...SECTOR_SCREENS.edit]));
     expect(allows(leaf(SECTORS_ROUTES, ':sectorGuid/editar'))).toBe(true);
-
-    store.setIdentity(identity(['SETOR_VISUALIZAR', 'SETOR_CRIAR']));
-    expect(blocks(leaf(SECTORS_ROUTES, ':sectorGuid/editar'))).toBe(true);
   });
 
-  it('the list and detail leaves require SETOR_VISUALIZAR', () => {
-    store.setIdentity(identity(['SETOR_CRIAR']));
+  it('blocks /setores/:guid/editar when SETOR_VISUALIZAR, SETOR_EDITAR or CATEGORIA_SETOR_VISUALIZAR is missing', () => {
+    for (const { missing, rest } of withoutEach(SECTOR_SCREENS.edit)) {
+      store.setIdentity(identity(rest));
+      expect(blocks(leaf(SECTORS_ROUTES, ':sectorGuid/editar')))
+        .withContext(`missing ${missing}`)
+        .toBe(true);
+    }
+  });
+
+  it('does not require FUNCIONARIO_VISUALIZAR to edit a sector (staff list is optional)', () => {
+    store.setIdentity(identity([...SECTOR_SCREENS.edit])); // no FUNCIONARIO_VISUALIZAR
+    expect(allows(leaf(SECTORS_ROUTES, ':sectorGuid/editar'))).toBe(true);
+  });
+
+  // ---- view leaves unchanged ----------------------------------------
+
+  it('list and detail require only SETOR_VISUALIZAR', () => {
+    store.setIdentity(identity(['SETOR_CRIAR', 'FUNCIONARIO_VISUALIZAR', 'CATEGORIA_SETOR_VISUALIZAR']));
     expect(blocks(leaf(SECTORS_ROUTES, ''))).toBe(true);
     expect(blocks(leaf(SECTORS_ROUTES, ':sectorGuid'))).toBe(true);
 
@@ -114,39 +174,40 @@ describe('sector routes — permissions mirror the backend, without stacking', (
     expect(allows(leaf(SECTORS_ROUTES, ':sectorGuid'))).toBe(true);
   });
 
-  // ---- category leaves ------------------------------------------------
+  // ---- categories --------------------------------------------------
 
-  it('category leaves use CATEGORIA_SETOR_VISUALIZAR / CRIAR / EDITAR respectively', () => {
-    store.setIdentity(identity(['CATEGORIA_SETOR_VISUALIZAR']));
-    expect(allows(leaf(SECTOR_CATEGORIES_ROUTES, ''))).toBe(true);
-    expect(blocks(leaf(SECTOR_CATEGORIES_ROUTES, 'nova'))).toBe(true);
-    expect(blocks(leaf(SECTOR_CATEGORIES_ROUTES, ':categoryGuid/editar'))).toBe(true);
-
+  it('creating a category needs only CATEGORIA_SETOR_CRIAR (no read dependency)', () => {
     store.setIdentity(identity(['CATEGORIA_SETOR_CRIAR']));
     expect(allows(leaf(SECTOR_CATEGORIES_ROUTES, 'nova'))).toBe(true);
+  });
 
+  it('editing a category needs CATEGORIA_SETOR_VISUALIZAR + CATEGORIA_SETOR_EDITAR', () => {
     store.setIdentity(identity(['CATEGORIA_SETOR_EDITAR']));
+    expect(blocks(leaf(SECTOR_CATEGORIES_ROUTES, ':categoryGuid/editar'))).toBe(true);
+
+    store.setIdentity(identity(['CATEGORIA_SETOR_VISUALIZAR']));
+    expect(blocks(leaf(SECTOR_CATEGORIES_ROUTES, ':categoryGuid/editar'))).toBe(true);
+
+    store.setIdentity(identity([...SECTOR_CATEGORY_SCREENS.edit]));
     expect(allows(leaf(SECTOR_CATEGORIES_ROUTES, ':categoryGuid/editar'))).toBe(true);
   });
 
-  // ---- no invented permissions -------------------------------------------
+  it('the category list needs only CATEGORIA_SETOR_VISUALIZAR', () => {
+    store.setIdentity(identity(['CATEGORIA_SETOR_CRIAR']));
+    expect(blocks(leaf(SECTOR_CATEGORIES_ROUTES, ''))).toBe(true);
+    store.setIdentity(identity(['CATEGORIA_SETOR_VISUALIZAR']));
+    expect(allows(leaf(SECTOR_CATEGORIES_ROUTES, ''))).toBe(true);
+  });
 
-  it('every sector/category route guard references only real backend codes', () => {
-    const known = new Set([
-      'SETOR_VISUALIZAR',
-      'SETOR_CRIAR',
-      'SETOR_EDITAR',
-      'CATEGORIA_SETOR_VISUALIZAR',
-      'CATEGORIA_SETOR_CRIAR',
-      'CATEGORIA_SETOR_EDITAR',
-      'FUNCIONARIO_VISUALIZAR',
-    ]);
-    // A guard only returns `true` when the held codes satisfy it; feeding it the
-    // full known set must always pass. A guard keyed on a fictional code would
-    // stay blocked and fail this assertion.
-    store.setIdentity(identity([...known]));
+  // ---- security invariants ---------------------------------------
+
+  it('sends an anonymous user to /login from every sector/category leaf', () => {
+    const router = TestBed.inject(Router);
     for (const route of [...SECTORS_ROUTES, ...SECTOR_CATEGORIES_ROUTES]) {
-      expect(allows(route)).toBe(true);
+      const guard = (route.canMatch ?? [])[0] as CanMatchFn;
+      const result = TestBed.runInInjectionContext(() => guard(route, [] as UrlSegment[]));
+      expect(result instanceof UrlTree).toBe(true);
+      expect(router.serializeUrl(result as UrlTree)).toBe('/login');
     }
   });
 });

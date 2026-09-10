@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../core/auth/auth.service';
 import { AuthStore } from '../core/auth/auth-store';
+import { SECTOR_CATEGORY_SCREENS, SECTOR_SCREENS } from '../core/auth/screen-permissions';
 import { PermissionCode } from '../core/models/permission.model';
 
 interface NavItem {
@@ -25,11 +26,16 @@ const NAV_ITEMS: readonly NavItem[] = [
     path: '/unidades-hospitalares',
     permissions: ['FUNCIONARIO_VISUALIZAR'],
   },
-  { label: 'Setores', path: '/setores', permissions: ['SETOR_VISUALIZAR'] },
+  // The menu links to each area's list screen, so it is gated by that list's
+  // permission (from the shared screen-capability map). A user who can only
+  // create/edit without viewing has no useful entry point here, so — per the
+  // "consistent and predictable over a dead-end link" rule — the entry stays
+  // tied to the list capability rather than growing an OR of every capability.
+  { label: 'Setores', path: '/setores', permissions: SECTOR_SCREENS.view },
   {
     label: 'Categorias de setor',
     path: '/categorias-setor',
-    permissions: ['CATEGORIA_SETOR_VISUALIZAR'],
+    permissions: SECTOR_CATEGORY_SCREENS.view,
   },
   {
     label: 'Usuários e permissões',
