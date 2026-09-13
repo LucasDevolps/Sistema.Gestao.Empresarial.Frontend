@@ -5,11 +5,13 @@ function httpError(init: {
   status: number;
   error?: unknown;
   headers?: Record<string, string>;
+  statusText?: string;
 }): HttpErrorResponse {
   return new HttpErrorResponse({
     status: init.status,
     error: init.error,
     headers: new HttpHeaders(init.headers ?? {}),
+    statusText: init.statusText,
   });
 }
 
@@ -23,6 +25,21 @@ describe('toApiError', () => {
   it('uses the standard message for 401 and never leaks credentials detail', () => {
     const result = toApiError(httpError({ status: 401, error: { title: 'x' } }));
     expect(result.message).toContain('sessão');
+  });
+
+  it('uses a distinct message for a 401 raised after a silent refresh succeeded on a write', () => {
+    const result = toApiError(
+      httpError({ status: 401, statusText: 'Session renewed; resubmit required' }),
+    );
+    expect(result.message).toBe(
+      'Sua sessão foi renovada automaticamente. Clique em salvar novamente para concluir.',
+    );
+    expect(result.message).not.toContain('não está mais ativa');
+  });
+
+  it('still uses the generic expired-session message for an ordinary 401', () => {
+    const result = toApiError(httpError({ status: 401, statusText: 'Session expired' }));
+    expect(result.message).toBe('Sua sessão não está mais ativa. Entre novamente.');
   });
 
   it('exposes field errors from a 400 ValidationProblemDetails', () => {
