@@ -37,6 +37,18 @@ export const DUPLICATE_BUSINESS_KEY = 'DUPLICATE_BUSINESS_KEY';
 
 const GENERIC_MESSAGE = 'Não foi possível concluir a operação. Tente novamente em instantes.';
 
+/**
+ * `statusText` the auth interceptor sets on the synthetic 401 it raises when a
+ * silent refresh succeeded but the failed request was a non-idempotent write
+ * (POST/PUT/PATCH/DELETE), which is never auto-replayed (spec section 10). The
+ * session is fine — only this one submission needs to be sent again — so it
+ * must not be confused with an actual expired-session 401.
+ */
+const SESSION_RENEWED_RESUBMIT_STATUS_TEXT = 'Session renewed; resubmit required';
+
+const SESSION_RENEWED_RESUBMIT_MESSAGE =
+  'Sua sessão foi renovada automaticamente. Clique em salvar novamente para concluir.';
+
 /** Fallback when a duplication has no recognised `field` and no safe `detail`. */
 const GENERIC_DUPLICATE_MESSAGE =
   'Já existe um registro com estes dados. Revise as informações e tente novamente.';
@@ -144,10 +156,14 @@ export function toApiError(error: unknown): ApiError {
       : undefined;
 
   const isBusinessDuplicate = status === 409 && code === DUPLICATE_BUSINESS_KEY;
+  const isSessionRenewedResubmit =
+    status === 401 && error.statusText === SESSION_RENEWED_RESUBMIT_STATUS_TEXT;
 
   const message = isBusinessDuplicate
     ? duplicateBusinessKeyMessage(field, problem?.detail)
-    : (status === 400 && backendTitle) || STATUS_MESSAGES[status] || backendTitle || GENERIC_MESSAGE;
+    : isSessionRenewedResubmit
+      ? SESSION_RENEWED_RESUBMIT_MESSAGE
+      : (status === 400 && backendTitle) || STATUS_MESSAGES[status] || backendTitle || GENERIC_MESSAGE;
 
   const fieldErrors =
     problem && problem.errors && typeof problem.errors === 'object'
