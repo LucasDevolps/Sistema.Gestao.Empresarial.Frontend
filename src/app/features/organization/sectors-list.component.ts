@@ -109,6 +109,7 @@ import { OrganizationCatalogService } from './organization-catalog.service';
               <th scope="col">Setor</th>
               <th scope="col">Unidade</th>
               <th scope="col">Categoria</th>
+              <th scope="col">Assistencial</th>
               <th scope="col">Escala</th>
               <th scope="col">Multiunidade</th>
               <th scope="col">Situação</th>
@@ -122,6 +123,7 @@ import { OrganizationCatalogService } from './organization-catalog.service';
                 <td><a [routerLink]="[sector.guid]">{{ sector.name }}</a></td>
                 <td class="muted">{{ sector.unit.name }}</td>
                 <td class="muted">{{ sector.category.name }}</td>
+                <td>{{ sector.careRelated ? 'Sim' : 'Não' }}</td>
                 <td>{{ sector.allowsScheduleAllocation ? 'Sim' : 'Não' }}</td>
                 <td>{{ sector.allowsSharedActing ? 'Sim' : 'Não' }}</td>
                 <td><app-status-badge [active]="sector.active" /></td>
@@ -137,11 +139,11 @@ import { OrganizationCatalogService } from './organization-catalog.service';
               </tr>
             } @empty {
               @if (!loading()) {
-                <tr><td colspan="8"><div class="empty-state">Nenhum setor encontrado.</div></td></tr>
+                <tr><td colspan="9"><div class="empty-state">Nenhum setor encontrado.</div></td></tr>
               }
             }
             @if (loading()) {
-              <tr><td colspan="8"><div class="empty-state"><span class="spinner"></span> Carregando…</div></td></tr>
+              <tr><td colspan="9"><div class="empty-state"><span class="spinner"></span> Carregando…</div></td></tr>
             }
           </tbody>
         </table>
