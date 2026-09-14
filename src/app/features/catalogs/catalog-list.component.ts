@@ -82,7 +82,7 @@ type CatalogRow = ProfessionResponse | PositionResponse;
           <thead>
             <tr>
               <th scope="col">Nome</th>
-              <th scope="col">Descrição</th>
+              <th scope="col" class="col-description">Descrição</th>
               <th scope="col">Situação</th>
               <th scope="col"></th>
             </tr>
@@ -91,7 +91,7 @@ type CatalogRow = ProfessionResponse | PositionResponse;
             @for (row of items(); track row.guid) {
               <tr>
                 <td>{{ row.name }}</td>
-                <td class="muted">{{ row.description || '—' }}</td>
+                <td class="muted col-description">{{ row.description || '—' }}</td>
                 <td><app-status-badge [active]="row.active" /></td>
                 <td>
                   <a
@@ -124,6 +124,14 @@ type CatalogRow = ProfessionResponse | PositionResponse;
       />
     </div>
   `,
+  styles: [`
+    /* A descrição costuma ser longa e não cabe em telas estreitas — some com ela ali. */
+    @media (max-width: 640px) {
+      .col-description {
+        display: none;
+      }
+    }
+  `],
 })
 export class CatalogListComponent implements OnInit {
   private readonly service = inject(ProfessionalCatalogService);
