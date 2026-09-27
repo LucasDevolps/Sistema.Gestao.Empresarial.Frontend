@@ -73,6 +73,7 @@ const DUPLICATE_FIELD_MESSAGES: Record<string, string> = {
   name: 'Já existe um registro com este nome.',
   nome: 'Já existe um registro com este nome.',
   sigla: 'Já existe um setor com esta sigla nesta unidade hospitalar.',
+  code: 'Já existe um registro com este código.',
   email: 'Já existe um registro utilizando este e-mail.',
   'e-mail': 'Já existe um registro utilizando este e-mail.',
 };

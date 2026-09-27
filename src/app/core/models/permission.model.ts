@@ -8,7 +8,9 @@
  * (spec sections 14, 15) — never from the JWT.
  *
  * Sectors and sector categories are full CRUD-without-delete resources
- * (`/api/setores*`, `/api/categorias-setor*`).
+ * (`/api/setores*`, `/api/categorias-setor*`). Professional levels are a full
+ * CRUD with logical deletion (`/api/niveis-profissionais*`); deleting requires
+ * `NIVEL_PROFISSIONAL_EDITAR`.
  */
 export const PERMISSION_CODES = [
   'FUNCIONARIO_VISUALIZAR',
@@ -21,6 +23,8 @@ export const PERMISSION_CODES = [
   'CARGO_CRIAR',
   'CARGO_EDITAR',
   'NIVEL_PROFISSIONAL_VISUALIZAR',
+  'NIVEL_PROFISSIONAL_CRIAR',
+  'NIVEL_PROFISSIONAL_EDITAR',
   'SETOR_VISUALIZAR',
   'SETOR_CRIAR',
   'SETOR_EDITAR',
@@ -44,6 +48,8 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   CARGO_CRIAR: 'Criar cargos',
   CARGO_EDITAR: 'Editar cargos',
   NIVEL_PROFISSIONAL_VISUALIZAR: 'Visualizar níveis profissionais',
+  NIVEL_PROFISSIONAL_CRIAR: 'Criar níveis profissionais',
+  NIVEL_PROFISSIONAL_EDITAR: 'Editar e excluir níveis profissionais',
   SETOR_VISUALIZAR: 'Visualizar setores',
   SETOR_CRIAR: 'Criar setores',
   SETOR_EDITAR: 'Editar setores e unidades atendidas',

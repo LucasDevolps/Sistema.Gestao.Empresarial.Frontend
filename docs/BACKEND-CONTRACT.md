@@ -7,6 +7,10 @@ merge da PR #71 `feature/gestao-setores-hospitalares` — CRUD de setores e
 catálogo de categorias de setor — sobre a base da PR #14
 `feature/frontend-support-endpoints`).
 
+O CRUD de níveis profissionais (seção “Profissões, cargos e níveis”) segue o
+backend da branch `feature/issue-47-niveis-profissionais` (issue #47), que precisa
+estar publicado junto com este frontend.
+
 Controllers confirmados no checkout: `Auth`, `Employees`, `HospitalUnits`,
 `Organizations`, `Positions`, `ProfessionalLevels`, `Professions`, `Sectors`,
 `SectorCategories`, `Users` — mais 3 health checks operacionais.
@@ -86,11 +90,23 @@ categorias de setor são **CRUD sem DELETE** — inativação, nunca exclusão f
 | Nova profissão | `POST /api/profissoes` | `PROFISSAO_CRIAR` |
 | Status profissão | `PATCH /api/profissoes/{guid}/status` | `PROFISSAO_EDITAR` |
 | Cargos (idem) | `GET/POST/PUT/PATCH /api/cargos…` | `CARGO_VISUALIZAR` / `CARGO_CRIAR` / `CARGO_EDITAR` |
-| Níveis — lista (`professional-levels`) | `GET /api/niveis-profissionais?active` | `NIVEL_PROFISSIONAL_VISUALIZAR` |
-| Nível — detalhe | `GET /api/niveis-profissionais/{guid}` | `NIVEL_PROFISSIONAL_VISUALIZAR` |
+| Níveis — lista (`professional-levels`) | `GET /api/niveis-profissionais?search&active&page&pageSize` | `NIVEL_PROFISSIONAL_VISUALIZAR` |
+| Nível — edição (`professional-level-form`) | `GET/PUT /api/niveis-profissionais/{guid}` | `NIVEL_PROFISSIONAL_VISUALIZAR` / `NIVEL_PROFISSIONAL_EDITAR` |
+| Novo nível | `POST /api/niveis-profissionais` | `NIVEL_PROFISSIONAL_CRIAR` |
+| Excluir nível (lista, com confirmação) | `POST /api/niveis-profissionais/{guid}/excluir` → `204` | `NIVEL_PROFISSIONAL_EDITAR` |
 
-Profissões e cargos usam **inativação**, nunca DELETE. Níveis são somente consulta.
-Não há botão “Excluir” em nenhuma dessas telas.
+Profissões e cargos usam **inativação**, nunca DELETE. Níveis profissionais são um
+catálogo configurável (issue #47 do backend) com **exclusão lógica**: a API não expõe
+HTTP `DELETE`, então a exclusão é a ação `POST …/excluir`. Contrato de nível:
+`{ guid, code, name, order, active, createdAt, updatedAt }`; o corpo de
+`POST`/`PUT` é `{ code, name, order }` (código até 10, nome até 80, ordem 1–9999).
+
+- `409 DUPLICATE_BUSINESS_KEY` traz `field` `code` ou `name`; o formulário marca o
+  campo em conflito.
+- `422` na exclusão significa exclusivamente “nível vinculado a funcionários” (o
+  backend só expõe `title` genérico); a lista mostra essa mensagem e mantém o item.
+- O cadastro/edição de funcionário carrega os níveis com
+  `listLevels({ active: true, page: 1, pageSize: 100 })` (envelope paginado).
 
 ## Usuários e permissões — `features/users`
 
@@ -109,13 +125,15 @@ Não há botão “Excluir” em nenhuma dessas telas.
 ## Catálogo de permissões (`core/models/permission.model.ts`)
 
 `FUNCIONARIO_VISUALIZAR/CRIAR/EDITAR`, `PROFISSAO_VISUALIZAR/CRIAR/EDITAR`,
-`CARGO_VISUALIZAR/CRIAR/EDITAR`, `NIVEL_PROFISSIONAL_VISUALIZAR`,
+`CARGO_VISUALIZAR/CRIAR/EDITAR`, `NIVEL_PROFISSIONAL_VISUALIZAR/CRIAR/EDITAR`,
 `SETOR_VISUALIZAR/CRIAR/EDITAR`, `CATEGORIA_SETOR_VISUALIZAR/CRIAR/EDITAR`,
 `USUARIO_GERENCIAR_PERMISSOES`.
 
 `SETOR_CRIAR` e as três `CATEGORIA_SETOR_*` foram adicionadas junto com o CRUD de
 setores; `SETOR_EDITAR` agora é consumida (editar setor, status e unidades
-atendidas).
+atendidas). `NIVEL_PROFISSIONAL_CRIAR` e `NIVEL_PROFISSIONAL_EDITAR` vieram com o
+CRUD de níveis profissionais (`EDITAR` também protege a exclusão lógica); as
+capacidades de tela estão em `PROFESSIONAL_LEVEL_SCREENS`.
 
 ## Guards de rota e capacidade de tela
 

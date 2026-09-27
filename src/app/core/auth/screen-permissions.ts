@@ -70,3 +70,27 @@ export const SECTOR_CATEGORY_SCREENS = {
   /** Edit category — read current state + write. */
   edit: ['CATEGORIA_SETOR_VISUALIZAR', 'CATEGORIA_SETOR_EDITAR'],
 } as const satisfies Record<string, readonly PermissionCode[]>;
+
+/**
+ * Professional levels (`/api/niveis-profissionais*`):
+ * | Endpoint                                             | Permission                       |
+ * |------------------------------------------------------|----------------------------------|
+ * | `GET  /api/niveis-profissionais`                     | `NIVEL_PROFISSIONAL_VISUALIZAR`  |
+ * | `GET  /api/niveis-profissionais/{guid}`              | `NIVEL_PROFISSIONAL_VISUALIZAR`  |
+ * | `POST /api/niveis-profissionais`                     | `NIVEL_PROFISSIONAL_CRIAR`       |
+ * | `PUT  /api/niveis-profissionais/{guid}`              | `NIVEL_PROFISSIONAL_EDITAR`      |
+ * | `POST /api/niveis-profissionais/{guid}/excluir`      | `NIVEL_PROFISSIONAL_EDITAR`      |
+ */
+export const PROFESSIONAL_LEVEL_SCREENS = {
+  /** List — a single read endpoint. */
+  view: ['NIVEL_PROFISSIONAL_VISUALIZAR'],
+  /** New level — no read dependency, so only the write permission. */
+  create: ['NIVEL_PROFISSIONAL_CRIAR'],
+  /** Edit level — read current state + write. */
+  edit: ['NIVEL_PROFISSIONAL_VISUALIZAR', 'NIVEL_PROFISSIONAL_EDITAR'],
+  /**
+   * "Excluir" on the list screen — an in-screen action, not a route. The row only
+   * exists after the list read, and the logical deletion is guarded by EDITAR.
+   */
+  delete: ['NIVEL_PROFISSIONAL_VISUALIZAR', 'NIVEL_PROFISSIONAL_EDITAR'],
+} as const satisfies Record<string, readonly PermissionCode[]>;

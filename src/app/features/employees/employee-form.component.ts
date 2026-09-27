@@ -105,7 +105,9 @@ export class EmployeeFormComponent implements OnInit {
       positions: this.canPositions()
         ? this.catalogs.listPositions({ active: true, page: 1, pageSize: 100 })
         : of(null),
-      levels: this.canLevels() ? this.catalogs.listLevels(true) : of(null),
+      levels: this.canLevels()
+        ? this.catalogs.listLevels({ active: true, page: 1, pageSize: 100 })
+        : of(null),
       units: this.canUnits()
         ? this.orgCatalog.listHospitalUnits({ active: true, page: 1, pageSize: 100 })
         : of(null),
@@ -118,7 +120,7 @@ export class EmployeeFormComponent implements OnInit {
       next: (result) => {
         if (result.professions) this.professions.set(result.professions.items);
         if (result.positions) this.positions.set(result.positions.items);
-        if (result.levels) this.levels.set(result.levels);
+        if (result.levels) this.levels.set(result.levels.items);
         if (result.units) this.units.set(result.units.items);
         if (result.sectors) this.sectors.set(result.sectors.items);
         if (this.isEdit()) {

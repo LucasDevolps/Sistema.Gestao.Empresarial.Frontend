@@ -11,7 +11,6 @@ Documento exigido pelas seções 1, 45, 53, 55 e 56 do prompt. Nada aqui foi
 | Catálogo completo de permissões | Não há endpoint. | A tela de permissões usa a lista de códigos conhecidos (`permission.model.ts`), espelhando `PermissionCodes` do backend. Se o backend adicionar códigos, atualizar essa constante. |
 | Remoção de sobrescrita de permissão (restaurar herança) | Não existe. O `PUT` só grava concessão direta ou negação explícita. | A UI oferece apenas “Conceder” e “Negar”. |
 | CRUD de organizações e unidades hospitalares | Somente consulta. | Sem telas de criação/edição/status para esses recursos. Setores e categorias de setor **passaram a ter CRUD completo** (`/api/setores*`, `/api/categorias-setor*`). |
-| CRUD de níveis profissionais | Somente consulta. | Tela somente-leitura. |
 | Métricas/contadores de dashboard | Nenhum endpoint agrega totais. | A Home **não** mostra números; apenas identidade, escopo e atalhos por permissão. |
 | `GET` individual de vínculos de funcionário | Não existe (o `Location` das respostas `201` não é consultável isoladamente). | Vínculos são lidos a partir do detalhe do funcionário. |
 
