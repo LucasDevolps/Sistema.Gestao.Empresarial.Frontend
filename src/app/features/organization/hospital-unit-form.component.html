@@ -1,0 +1,344 @@
+<div class="page stack">
+  <header class="page__head">
+    <div>
+      <h1 class="page__title">
+        {{ isEdit() ? 'Editar unidade hospitalar' : 'Nova unidade hospitalar' }}
+      </h1>
+      <p class="page__subtitle">
+        Campos marcados com <span aria-hidden="true">*</span><span class="visually-hidden">asterisco</span>
+        são obrigatórios. As consultas de CNPJ e CEP apenas sugerem dados — tudo continua editável.
+      </p>
+    </div>
+    <a class="btn btn--ghost" [routerLink]="backLink()">Voltar</a>
+  </header>
+
+  @if (loading()) {
+    <div class="empty-state" role="status"><span class="spinner" aria-hidden="true"></span> Carregando…</div>
+  } @else if (loadError()) {
+    <div class="card">
+      <div class="card__body stack">
+        <p role="alert">{{ loadError() }}</p>
+        <a class="btn btn--ghost" routerLink="/unidades-hospitalares">Voltar para a lista</a>
+      </div>
+    </div>
+  } @else {
+    <nav class="card hu-toc" aria-label="Seções do cadastro">
+      <ol>
+        @for (section of sections; track section.id) {
+          <li>
+            <a routerLink="." [fragment]="'hu-section-' + section.id">{{ section.title }}</a>
+          </li>
+        }
+      </ol>
+    </nav>
+
+    <form
+      class="stack"
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+      novalidate
+      [attr.aria-busy]="busy()"
+    >
+      @for (section of sections; track section.id) {
+        <section
+          class="card"
+          [id]="'hu-section-' + section.id"
+          [attr.aria-labelledby]="'hu-section-' + section.id + '-title'"
+        >
+          <div class="card__header">
+            <h2 class="hu-section__title" [id]="'hu-section-' + section.id + '-title'">
+              {{ section.title }}
+            </h2>
+          </div>
+          <div class="card__body stack">
+            @if (section.description) {
+              <p class="muted hu-section__description">{{ section.description }}</p>
+            }
+
+            @if (section.id === 'identification') {
+              <dl class="facts">
+                <div>
+                  <dt>Organização</dt>
+                  <dd>{{ organizationName() ?? 'Definida pelo servidor a partir do seu vínculo' }}</dd>
+                </div>
+                @if (loadedUnit(); as unit) {
+                  <div>
+                    <dt>Situação</dt>
+                    <dd>
+                      <app-status-badge [active]="unit.active" activeLabel="Ativa" inactiveLabel="Inativa" />
+                    </dd>
+                  </div>
+                }
+              </dl>
+            }
+
+            @if (section.id === 'company' && cnpjInactiveWarning()) {
+              <div class="hu-alert hu-alert--warning" role="alert">{{ inactiveCnpjMessage }}</div>
+            }
+
+            <div class="hu-grid">
+              @for (field of section.fields; track field.key) {
+                <div class="field" [class.hu-grid__wide]="field.wide">
+                  @if (field.kind === 'checkbox') {
+                    <label class="hu-check" [for]="controlId(field.key)">
+                      <input type="checkbox" [id]="controlId(field.key)" [formControlName]="field.key" />
+                      <span>{{ field.label }}</span>
+                    </label>
+                  } @else {
+                    <label class="field__label" [for]="controlId(field.key)">
+                      {{ field.label }}
+                      @if (isRequired(field.key)) {
+                        <span class="hu-required" aria-hidden="true">*</span>
+                      }
+                    </label>
+
+                    @switch (field.kind) {
+                      @case ('textarea') {
+                        <textarea
+                          class="textarea"
+                          rows="4"
+                          [id]="controlId(field.key)"
+                          [formControlName]="field.key"
+                          [attr.maxlength]="field.maxLength ?? null"
+                          [attr.aria-invalid]="invalid(field.key)"
+                          [attr.aria-required]="isRequired(field.key)"
+                          [attr.aria-describedby]="describedBy(field)"
+                        ></textarea>
+                      }
+                      @case ('number') {
+                        <input
+                          class="input"
+                          type="number"
+                          min="0"
+                          step="1"
+                          inputmode="numeric"
+                          [id]="controlId(field.key)"
+                          [formControlName]="field.key"
+                          [attr.aria-invalid]="invalid(field.key)"
+                          [attr.aria-describedby]="describedBy(field)"
+                        />
+                      }
+                      @case ('uf') {
+                        <select
+                          class="select"
+                          [id]="controlId(field.key)"
+                          [formControlName]="field.key"
+                          [attr.aria-invalid]="invalid(field.key)"
+                          [attr.aria-required]="isRequired(field.key)"
+                          [attr.aria-describedby]="describedBy(field)"
+                        >
+                          <option value="">Selecione…</option>
+                          @for (uf of states; track uf) {
+                            <option [value]="uf">{{ uf }}</option>
+                          }
+                        </select>
+                      }
+                      @case ('unitType') {
+                        <select
+                          class="select"
+                          [id]="controlId(field.key)"
+                          [formControlName]="field.key"
+                          [attr.aria-describedby]="describedBy(field)"
+                        >
+                          <option [ngValue]="null">Não informado</option>
+                          @for (option of unitTypeOptions; track option.value) {
+                            <option [ngValue]="option.value">{{ option.label }}</option>
+                          }
+                        </select>
+                      }
+                      @case ('nature') {
+                        <select
+                          class="select"
+                          [id]="controlId(field.key)"
+                          [formControlName]="field.key"
+                          [attr.aria-describedby]="describedBy(field)"
+                        >
+                          <option [ngValue]="null">Não informado</option>
+                          @for (option of natureOptions; track option.value) {
+                            <option [ngValue]="option.value">{{ option.label }}</option>
+                          }
+                        </select>
+                      }
+                      @case ('triState') {
+                        <select class="select" [id]="controlId(field.key)" [formControlName]="field.key">
+                          <option [ngValue]="null">Não informado</option>
+                          <option [ngValue]="true">Sim</option>
+                          <option [ngValue]="false">Não</option>
+                        </select>
+                      }
+                      @case ('tel') {
+                        <input
+                          class="input"
+                          type="tel"
+                          appMask="phone"
+                          autocomplete="off"
+                          [id]="controlId(field.key)"
+                          [formControlName]="field.key"
+                          [attr.maxlength]="field.maxLength ?? null"
+                          [attr.aria-invalid]="invalid(field.key)"
+                          [attr.aria-describedby]="describedBy(field)"
+                        />
+                      }
+                      @case ('cnpj') {
+                        <div class="hu-inline">
+                          <input
+                            class="input"
+                            type="text"
+                            appMask="cnpj"
+                            inputmode="numeric"
+                            autocomplete="off"
+                            [id]="controlId(field.key)"
+                            [formControlName]="field.key"
+                            [attr.aria-invalid]="invalid(field.key)"
+                            [attr.aria-required]="isRequired(field.key)"
+                            [attr.aria-describedby]="describedBy(field, 'hu-cnpj-lookup')"
+                          />
+                          @if (canLookup()) {
+                            <button
+                              type="button"
+                              class="btn btn--ghost"
+                              [disabled]="!canQueryCnpj()"
+                              (click)="consultCnpj()"
+                            >
+                              @if (cnpjLookup().status === 'loading') {
+                                <span class="spinner" aria-hidden="true"></span> Consultando…
+                              } @else {
+                                Consultar CNPJ
+                              }
+                            </button>
+                          }
+                        </div>
+                        <p
+                          id="hu-cnpj-lookup"
+                          class="hu-lookup"
+                          [class.hu-lookup--error]="cnpjLookup().status === 'error' || cnpjLookup().status === 'notFound'"
+                          [class.hu-lookup--success]="cnpjLookup().status === 'success'"
+                          role="status"
+                          aria-live="polite"
+                        >
+                          {{ cnpjLookup().message }}
+                        </p>
+                      }
+                      @case ('cep') {
+                        <div class="hu-inline">
+                          <input
+                            class="input"
+                            type="text"
+                            appMask="cep"
+                            inputmode="numeric"
+                            autocomplete="postal-code"
+                            [id]="controlId(field.key)"
+                            [formControlName]="field.key"
+                            [attr.aria-invalid]="invalid(field.key)"
+                            [attr.aria-required]="isRequired(field.key)"
+                            [attr.aria-describedby]="describedBy(field, 'hu-cep-lookup')"
+                          />
+                          @if (canLookup()) {
+                            <button
+                              type="button"
+                              class="btn btn--ghost"
+                              [disabled]="!canQueryCep()"
+                              (click)="consultCep()"
+                            >
+                              @if (cepLookup().status === 'loading') {
+                                <span class="spinner" aria-hidden="true"></span> Buscando…
+                              } @else {
+                                Buscar CEP
+                              }
+                            </button>
+                          }
+                        </div>
+                        <p
+                          id="hu-cep-lookup"
+                          class="hu-lookup"
+                          [class.hu-lookup--error]="cepLookup().status === 'error' || cepLookup().status === 'notFound'"
+                          [class.hu-lookup--success]="cepLookup().status === 'success'"
+                          role="status"
+                          aria-live="polite"
+                        >
+                          {{ cepLookup().message }}
+                        </p>
+                      }
+                      @default {
+                        <input
+                          class="input"
+                          [type]="field.kind"
+                          [class.hu-upper]="field.uppercase"
+                          [id]="controlId(field.key)"
+                          [formControlName]="field.key"
+                          [attr.maxlength]="field.maxLength ?? null"
+                          [attr.inputmode]="field.inputMode ?? null"
+                          [attr.autocomplete]="field.autocomplete ?? null"
+                          [attr.aria-invalid]="invalid(field.key)"
+                          [attr.aria-required]="isRequired(field.key)"
+                          [attr.aria-describedby]="describedBy(field)"
+                        />
+                      }
+                    }
+                  }
+
+                  @if (field.hint) {
+                    <span class="field__hint" [id]="controlId(field.key) + '-hint'">{{ field.hint }}</span>
+                  }
+                  @if (invalid(field.key)) {
+                    <span class="field__error" [id]="controlId(field.key) + '-error'">
+                      {{ errorFor(field.key) }}
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </section>
+      }
+
+      <div class="card hu-actions">
+        <div class="card__body hu-actions__body">
+          @if (formError()) {
+            <p class="field__error hu-actions__error" role="alert">{{ formError() }}</p>
+          }
+          <div class="hu-actions__buttons">
+            <a class="btn btn--ghost" [routerLink]="backLink()">Cancelar</a>
+            <button type="submit" class="btn btn--accent" [disabled]="busy()">
+              @if (checkingDuplicates()) {
+                <span class="spinner" aria-hidden="true"></span> Verificando duplicidades…
+              } @else if (saving()) {
+                <span class="spinner" aria-hidden="true"></span> Salvando…
+              } @else {
+                {{ isEdit() ? 'Salvar alterações' : 'Cadastrar unidade' }}
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  }
+</div>
+
+<app-confirm-dialog
+  [open]="duplicateCandidates() !== null"
+  title="Possíveis unidades semelhantes"
+  message="Encontramos unidades que podem ser semelhantes a este cadastro. Deseja continuar mesmo assim?"
+  confirmLabel="Continuar mesmo assim"
+  cancelLabel="Revisar cadastro"
+  tone="primary"
+  (confirmed)="confirmDespiteDuplicates()"
+  (cancelled)="reviewDuplicates()"
+>
+  <ul class="hu-candidates">
+    @for (candidate of duplicateCandidates() ?? []; track candidate.guid) {
+      <li>
+        <strong>{{ candidate.name }}</strong>
+        @if (candidateLocation(candidate); as location) {
+          — {{ location }}
+        }
+        @if (candidate.legalName) {
+          <span class="muted"> · {{ candidate.legalName }}</span>
+        }
+        @if (!candidate.active) {
+          <span class="muted"> (inativa)</span>
+        }
+      </li>
+    }
+  </ul>
+</app-confirm-dialog>

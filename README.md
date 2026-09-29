@@ -119,15 +119,15 @@ src/app/
     ui/            LoadingService + loadingInterceptor
   shared/
     directives/    *appHasPermission (deny by default, reativo)
-    components/     toast-host, paginator, status-badge
+    components/     toast-host, paginator, status-badge, confirm-dialog
     pipes/          dateOnly (YYYY-MM-DD → DD/MM/YYYY, sem fuso)
   layout/          shell (sidebar + header, menu por permissão)
   features/
     auth/          login
     home/          página inicial (sem métricas fictícias)
     employees/     lista, detalhe, formulário, 9 endpoints + vínculos
-    catalogs/      profissões e cargos (genérico), níveis (somente leitura)
-    organization/  unidades e setores (somente leitura)
+    catalogs/      profissões e cargos (genérico), níveis profissionais (CRUD + exclusão lógica)
+    organization/  unidades hospitalares, setores e categorias (CRUD sem DELETE)
     users/         lista + administração de permissões
 ```
 

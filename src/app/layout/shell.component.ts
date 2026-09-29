@@ -2,7 +2,12 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../core/auth/auth.service';
 import { AuthStore } from '../core/auth/auth-store';
-import { SECTOR_CATEGORY_SCREENS, SECTOR_SCREENS } from '../core/auth/screen-permissions';
+import {
+  HOSPITAL_UNIT_SCREENS,
+  PROFESSIONAL_LEVEL_SCREENS,
+  SECTOR_CATEGORY_SCREENS,
+  SECTOR_SCREENS,
+} from '../core/auth/screen-permissions';
 import { PermissionCode } from '../core/models/permission.model';
 
 interface NavItem {
@@ -19,12 +24,12 @@ const NAV_ITEMS: readonly NavItem[] = [
   {
     label: 'Níveis profissionais',
     path: '/niveis-profissionais',
-    permissions: ['NIVEL_PROFISSIONAL_VISUALIZAR'],
+    permissions: PROFESSIONAL_LEVEL_SCREENS.view,
   },
   {
     label: 'Unidades hospitalares',
     path: '/unidades-hospitalares',
-    permissions: ['FUNCIONARIO_VISUALIZAR'],
+    permissions: HOSPITAL_UNIT_SCREENS.view,
   },
   // The menu links to each area's list screen, so it is gated by that list's
   // permission (from the shared screen-capability map). A user who can only

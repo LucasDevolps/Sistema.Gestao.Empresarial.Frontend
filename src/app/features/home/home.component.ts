@@ -1,6 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthStore } from '../../core/auth/auth-store';
+import {
+  HOSPITAL_UNIT_SCREENS,
+  PROFESSIONAL_LEVEL_SCREENS,
+} from '../../core/auth/screen-permissions';
 import { PermissionCode } from '../../core/models/permission.model';
 
 interface QuickLink {
@@ -31,15 +35,15 @@ const QUICK_LINKS: readonly QuickLink[] = [
   },
   {
     label: 'Níveis profissionais',
-    description: 'Consulta dos níveis profissionais.',
+    description: 'Catálogo de níveis profissionais.',
     path: '/niveis-profissionais',
-    permissions: ['NIVEL_PROFISSIONAL_VISUALIZAR'],
+    permissions: PROFESSIONAL_LEVEL_SCREENS.view,
   },
   {
     label: 'Unidades hospitalares',
-    description: 'Unidades da sua organização.',
+    description: 'Cadastro das unidades da sua organização.',
     path: '/unidades-hospitalares',
-    permissions: ['FUNCIONARIO_VISUALIZAR'],
+    permissions: HOSPITAL_UNIT_SCREENS.view,
   },
   {
     label: 'Setores',

@@ -6,10 +6,17 @@ import { buildParams } from '../../core/http/http-params';
 import { PageQuery, PagedResponse } from '../../core/models/api.models';
 import {
   AddSectorServedUnitRequest,
+  CepLookupResponse,
+  ChangeHospitalUnitStatusRequest,
   ChangeSectorStatusRequest,
+  CnpjLookupResponse,
   CreateSectorRequest,
   EndSectorServedUnitRequest,
+  HospitalUnitDuplicateQuery,
+  HospitalUnitListQuery,
+  HospitalUnitRegistrationRequest,
   HospitalUnitResponse,
+  HospitalUnitSummaryResponse,
   OrganizationResponse,
   SectorCategoryResponse,
   SectorListQuery,
@@ -24,9 +31,11 @@ import {
  * Client for `/api/organizacoes/atual`, `/api/unidades-hospitalares`,
  * `/api/setores` and `/api/categorias-setor`.
  *
- * Organizations and hospital units stay read-only (tenant-scoped by the backend).
- * Sectors and sector categories are full CRUD-without-delete — one method per
- * real endpoint, nothing invented.
+ * Organizations stay read-only (tenant-scoped by the backend). Hospital units,
+ * sectors and sector categories are full CRUD-without-delete — one method per
+ * real endpoint, nothing invented. The hospital-unit CNPJ/CEP lookups go through
+ * the backend (`Angular → SGE API → BrasilAPI/ViaCEP`), never straight to the
+ * providers.
  */
 @Injectable({ providedIn: 'root' })
 export class OrganizationCatalogService {
@@ -37,20 +46,81 @@ export class OrganizationCatalogService {
     return this.http.get<OrganizationResponse>(`${this.root}/organizacoes/atual`);
   }
 
-  listHospitalUnits(query: PageQuery): Observable<PagedResponse<HospitalUnitResponse>> {
+  // --- hospital units ------------------------------------------------
+
+  /** Summary projection only — never the full registration of each row. */
+  listHospitalUnits(
+    query: HospitalUnitListQuery,
+  ): Observable<PagedResponse<HospitalUnitSummaryResponse>> {
     const params = buildParams({
       search: query.search ?? undefined,
+      legalName: query.legalName ?? undefined,
+      cnpj: query.cnpj ?? undefined,
+      cnes: query.cnes ?? undefined,
+      city: query.city ?? undefined,
+      state: query.state ?? undefined,
+      organizationGuid: query.organizationGuid ?? undefined,
       active: query.active ?? undefined,
       page: query.page,
       pageSize: query.pageSize,
     });
-    return this.http.get<PagedResponse<HospitalUnitResponse>>(`${this.root}/unidades-hospitalares`, {
-      params,
-    });
+    return this.http.get<PagedResponse<HospitalUnitSummaryResponse>>(
+      `${this.root}/unidades-hospitalares`,
+      { params },
+    );
   }
 
   getHospitalUnit(unitGuid: string): Observable<HospitalUnitResponse> {
     return this.http.get<HospitalUnitResponse>(`${this.root}/unidades-hospitalares/${unitGuid}`);
+  }
+
+  createHospitalUnit(request: HospitalUnitRegistrationRequest): Observable<HospitalUnitResponse> {
+    return this.http.post<HospitalUnitResponse>(`${this.root}/unidades-hospitalares`, request);
+  }
+
+  /** Full replacement: every optional field omitted/null is cleared by the backend. */
+  updateHospitalUnit(
+    unitGuid: string,
+    request: HospitalUnitRegistrationRequest,
+  ): Observable<HospitalUnitResponse> {
+    return this.http.put<HospitalUnitResponse>(
+      `${this.root}/unidades-hospitalares/${unitGuid}`,
+      request,
+    );
+  }
+
+  changeHospitalUnitStatus(
+    unitGuid: string,
+    request: ChangeHospitalUnitStatusRequest,
+  ): Observable<HospitalUnitResponse> {
+    return this.http.patch<HospitalUnitResponse>(
+      `${this.root}/unidades-hospitalares/${unitGuid}/status`,
+      request,
+    );
+  }
+
+  /** Backend proxy to BrasilAPI — the browser never calls the provider directly. */
+  lookupCnpj(cnpj: string): Observable<CnpjLookupResponse> {
+    return this.http.get<CnpjLookupResponse>(`${this.root}/unidades-hospitalares/consulta-cnpj`, {
+      params: buildParams({ cnpj }),
+    });
+  }
+
+  /** Backend proxy to ViaCEP — the browser never calls the provider directly. */
+  lookupCep(cep: string): Observable<CepLookupResponse> {
+    return this.http.get<CepLookupResponse>(`${this.root}/unidades-hospitalares/consulta-cep`, {
+      params: buildParams({ cep }),
+    });
+  }
+
+  /** Informative similarity alert; an empty array means "no candidates". Never blocks saving. */
+  findHospitalUnitDuplicates(
+    query: HospitalUnitDuplicateQuery,
+  ): Observable<HospitalUnitSummaryResponse[]> {
+    return this.http.post<HospitalUnitSummaryResponse[]>(
+      `${this.root}/unidades-hospitalares/possiveis-duplicidades`,
+      query,
+    );
   }
 
   // --- sectors -------------------------------------------------------

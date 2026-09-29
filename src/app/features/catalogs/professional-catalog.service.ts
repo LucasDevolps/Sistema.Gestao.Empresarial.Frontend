@@ -10,13 +10,16 @@ import {
   ProfessionResponse,
   ProfessionalLevelResponse,
   UpsertCatalogRequest,
+  UpsertProfessionalLevelRequest,
 } from '../../core/models/catalog.models';
 
 /**
  * Client for `/api/profissoes`, `/api/cargos` and `/api/niveis-profissionais`.
  *
  * Professions and positions share an identical CRUD-without-delete contract, so
- * the two are handled by one generic helper. Levels are query-only.
+ * the two are handled by one generic helper. Levels share the paginated listing
+ * and add a logical deletion, which the API exposes as an explicit action
+ * (`POST /api/niveis-profissionais/{guid}/excluir`) — it never uses HTTP DELETE.
  */
 @Injectable({ providedIn: 'root' })
 export class ProfessionalCatalogService {
@@ -77,14 +80,29 @@ export class ProfessionalCatalogService {
     return this.http.patch<PositionResponse>(`${this.root}/cargos/${guid}/status`, request);
   }
 
-  // --- professional levels (query-only) -----------------------------
+  // --- professional levels ---------------------------------------------
 
-  listLevels(active?: boolean | null): Observable<ProfessionalLevelResponse[]> {
-    const params = buildParams({ active: active ?? undefined });
-    return this.http.get<ProfessionalLevelResponse[]>(`${this.root}/niveis-profissionais`, { params });
+  listLevels(query: PageQuery): Observable<PagedResponse<ProfessionalLevelResponse>> {
+    return this.listCatalog<ProfessionalLevelResponse>('niveis-profissionais', query);
   }
 
   getLevel(guid: string): Observable<ProfessionalLevelResponse> {
     return this.http.get<ProfessionalLevelResponse>(`${this.root}/niveis-profissionais/${guid}`);
+  }
+
+  createLevel(request: UpsertProfessionalLevelRequest): Observable<ProfessionalLevelResponse> {
+    return this.http.post<ProfessionalLevelResponse>(`${this.root}/niveis-profissionais`, request);
+  }
+
+  updateLevel(
+    guid: string,
+    request: UpsertProfessionalLevelRequest,
+  ): Observable<ProfessionalLevelResponse> {
+    return this.http.put<ProfessionalLevelResponse>(`${this.root}/niveis-profissionais/${guid}`, request);
+  }
+
+  /** Logical deletion — the record stays in the database and disappears from queries. */
+  deleteLevel(guid: string): Observable<void> {
+    return this.http.post<void>(`${this.root}/niveis-profissionais/${guid}/excluir`, null);
   }
 }

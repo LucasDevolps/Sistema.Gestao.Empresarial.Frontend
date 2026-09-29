@@ -25,7 +25,7 @@ import { describeFieldErrors, toApiError } from '../../core/http/api-error';
 import { EmployeeSummaryResponse } from '../../core/models/employee.models';
 import {
   CreateSectorRequest,
-  HospitalUnitResponse,
+  HospitalUnitSummaryResponse,
   SectorCategoryResponse,
   SectorResponse,
   UpdateSectorRequest,
@@ -65,7 +65,7 @@ export class SectorFormComponent implements OnInit {
   protected readonly active = signal(true);
   protected readonly principalUnitName = signal<string>('');
 
-  protected readonly units = signal<HospitalUnitResponse[]>([]);
+  protected readonly units = signal<HospitalUnitSummaryResponse[]>([]);
   protected readonly categories = signal<SectorCategoryResponse[]>([]);
   protected readonly staff = signal<EmployeeSummaryResponse[]>([]);
 
@@ -78,7 +78,12 @@ export class SectorFormComponent implements OnInit {
   private readonly principalUnitGuid = signal<string>('');
   private readonly rowUnitGuids = signal<readonly string[]>([]);
 
-  protected readonly canUnits = computed(() => this.store.hasPermission('FUNCIONARIO_VISUALIZAR'));
+  /** `GET /api/unidades-hospitalares` → `UNIDADE_HOSPITALAR_VISUALIZAR` (backend PR #101). */
+  protected readonly canUnits = computed(() =>
+    this.store.hasPermission('UNIDADE_HOSPITALAR_VISUALIZAR'),
+  );
+  /** `GET /api/funcionarios` → `FUNCIONARIO_VISUALIZAR`; only feeds the optional responsible. */
+  protected readonly canStaff = computed(() => this.store.hasPermission('FUNCIONARIO_VISUALIZAR'));
   protected readonly canCategories = computed(() =>
     this.store.hasPermission('CATEGORIA_SETOR_VISUALIZAR'),
   );
@@ -87,7 +92,9 @@ export class SectorFormComponent implements OnInit {
   protected readonly missingCatalogs = computed(() => {
     const missing: string[] = [];
     if (!this.canCategories()) missing.push('CATEGORIA_SETOR_VISUALIZAR (categorias)');
-    if (!this.isEdit() && !this.canUnits()) missing.push('FUNCIONARIO_VISUALIZAR (unidades)');
+    if (!this.isEdit() && !this.canUnits()) {
+      missing.push('UNIDADE_HOSPITALAR_VISUALIZAR (unidades)');
+    }
     return missing;
   });
 
@@ -140,7 +147,7 @@ export class SectorFormComponent implements OnInit {
       categories: this.canCategories()
         ? this.service.listSectorCategories({ active: true, page: 1, pageSize: 100 })
         : of(null),
-      staff: this.canUnits()
+      staff: this.canStaff()
         ? this.employees.list({ active: true, page: 1, pageSize: 100 })
         : of(null),
     };
@@ -248,7 +255,7 @@ export class SectorFormComponent implements OnInit {
   };
 
   /** Units still selectable in served-unit row `index`: not the principal, not taken by another row. */
-  protected optionsForRow(index: number): HospitalUnitResponse[] {
+  protected optionsForRow(index: number): HospitalUnitSummaryResponse[] {
     const taken = new Set<string>();
     const principal = this.principalUnitGuid();
     if (principal) {

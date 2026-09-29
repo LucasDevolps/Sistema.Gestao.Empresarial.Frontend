@@ -42,16 +42,34 @@ export const routes: Routes = [
           import('./features/catalogs/positions.routes').then((m) => m.POSITIONS_ROUTES),
       },
       {
+        // Parent only requires *some* level access; each child enforces the exact
+        // capability of its screen (list → VISUALIZAR, novo → CRIAR, editar →
+        // VISUALIZAR + EDITAR).
         path: 'niveis-profissionais',
-        canMatch: [permissionGuard('NIVEL_PROFISSIONAL_VISUALIZAR')],
-        loadComponent: () =>
-          import('./features/catalogs/professional-levels.component').then(
-            (m) => m.ProfessionalLevelsComponent,
+        canMatch: [
+          permissionGuardAny(
+            'NIVEL_PROFISSIONAL_VISUALIZAR',
+            'NIVEL_PROFISSIONAL_CRIAR',
+            'NIVEL_PROFISSIONAL_EDITAR',
+          ),
+        ],
+        loadChildren: () =>
+          import('./features/catalogs/professional-levels.routes').then(
+            (m) => m.PROFESSIONAL_LEVELS_ROUTES,
           ),
       },
       {
+        // Parent only requires *some* hospital-unit access; each child enforces
+        // the capability of its screen (list/detail → VISUALIZAR, novo → CRIAR,
+        // editar → VISUALIZAR + EDITAR). See HOSPITAL_UNIT_SCREENS.
         path: 'unidades-hospitalares',
-        canMatch: [permissionGuard('FUNCIONARIO_VISUALIZAR')],
+        canMatch: [
+          permissionGuardAny(
+            'UNIDADE_HOSPITALAR_VISUALIZAR',
+            'UNIDADE_HOSPITALAR_CRIAR',
+            'UNIDADE_HOSPITALAR_EDITAR',
+          ),
+        ],
         loadChildren: () =>
           import('./features/organization/hospital-units.routes').then((m) => m.HOSPITAL_UNITS_ROUTES),
       },

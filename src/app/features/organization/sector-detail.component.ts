@@ -13,7 +13,7 @@ import { RouterLink } from '@angular/router';
 import { AuthStore } from '../../core/auth/auth-store';
 import { SECTOR_SCREENS } from '../../core/auth/screen-permissions';
 import { describeFieldErrors, toApiError } from '../../core/http/api-error';
-import { HospitalUnitResponse, SectorResponse } from '../../core/models/organization.models';
+import { HospitalUnitSummaryResponse, SectorResponse } from '../../core/models/organization.models';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
 import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
@@ -44,7 +44,7 @@ export class SectorDetailComponent implements OnInit {
   /** "Editar" link mirrors the edit route guard (read state + write + category catalog). */
   protected readonly editSectorScreen = SECTOR_SCREENS.edit;
   /**
-   * "Adicionar unidade atendida" needs `FUNCIONARIO_VISUALIZAR` on top of
+   * "Adicionar unidade atendida" needs `UNIDADE_HOSPITALAR_VISUALIZAR` on top of
    * `SETOR_EDITAR` to load the unit `<select>`; without it the form is unusable,
    * so it is hidden. "Encerrar" keeps requiring only `SETOR_EDITAR`.
    */
@@ -57,7 +57,7 @@ export class SectorDetailComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly busy = signal(false);
-  protected readonly units = signal<HospitalUnitResponse[]>([]);
+  protected readonly units = signal<HospitalUnitSummaryResponse[]>([]);
 
   protected readonly servedUnitForm = new FormGroup({
     unitGuid: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
@@ -72,7 +72,7 @@ export class SectorDetailComponent implements OnInit {
   protected readonly availableUnits = computed(() => {
     const current = this.sector();
     if (!current) {
-      return [] as HospitalUnitResponse[];
+      return [] as HospitalUnitSummaryResponse[];
     }
     const blocked = new Set<string>([current.unit.guid]);
     for (const link of current.servedUnits) {
@@ -120,7 +120,7 @@ export class SectorDetailComponent implements OnInit {
   }
 
   protected loadUnits(): void {
-    if (this.units().length > 0 || !this.store.hasPermission('FUNCIONARIO_VISUALIZAR')) {
+    if (this.units().length > 0 || !this.store.hasPermission('UNIDADE_HOSPITALAR_VISUALIZAR')) {
       return;
     }
     this.service

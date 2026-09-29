@@ -105,6 +105,30 @@ describe('toApiError', () => {
       expect(result.message).toBe('Já existe um setor com esta sigla nesta unidade hospitalar.');
     });
 
+    for (const [field, expected] of [
+      ['cnpj', 'Já existe uma unidade hospitalar cadastrada com este CNPJ.'],
+      ['cnes', 'Já existe uma unidade hospitalar cadastrada com este CNES.'],
+      ['internalCode', 'Já existe uma unidade hospitalar com este código interno nesta organização.'],
+    ] as const) {
+      it(`maps the hospital-unit field "${field}" to a safe message, never the SQL detail`, () => {
+        const result = toApiError(
+          httpError({
+            status: 409,
+            error: {
+              title: 'Registro duplicado.',
+              detail:
+                "Cannot insert duplicate key row in object 'dbo.UnidadesHospitalares' with unique index 'IX_UnidadesHospitalares_Cnpj'.",
+              code: DUPLICATE_BUSINESS_KEY,
+              field,
+            },
+          }),
+        );
+        expect(result.field).toBe(field);
+        expect(result.message).toBe(expected);
+        expect(result.message).not.toMatch(/IX_|dbo|duplicate key/i);
+      });
+    }
+
     it('maps field "email" to the e-mail message', () => {
       const result = toApiError(
         httpError({

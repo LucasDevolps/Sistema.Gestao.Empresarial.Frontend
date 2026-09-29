@@ -1,12 +1,21 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { debounceTime } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { AuthStore } from '../../core/auth/auth-store';
 import { toApiError } from '../../core/http/api-error';
 import { DEFAULT_PAGE_SIZE } from '../../core/models/api.models';
 import { EmployeeSummaryResponse } from '../../core/models/employee.models';
-import { HospitalUnitResponse } from '../../core/models/organization.models';
+import { HospitalUnitSummaryResponse } from '../../core/models/organization.models';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { PaginatorComponent } from '../../shared/components/paginator.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
@@ -58,15 +67,17 @@ import { EmployeesService } from './employees.service';
               <option value="false">Inativos</option>
             </select>
           </div>
-          <div class="field" style="flex: 1 1 220px">
-            <label class="field__label" for="unit">Unidade de atuação</label>
-            <select id="unit" class="select" formControlName="actingUnitGuid">
-              <option value="">Todas</option>
-              @for (unit of units(); track unit.guid) {
-                <option [value]="unit.guid">{{ unit.name }}</option>
-              }
-            </select>
-          </div>
+          @if (canListUnits()) {
+            <div class="field" style="flex: 1 1 220px">
+              <label class="field__label" for="unit">Unidade de atuação</label>
+              <select id="unit" class="select" formControlName="actingUnitGuid">
+                <option value="">Todas</option>
+                @for (unit of units(); track unit.guid) {
+                  <option [value]="unit.guid">{{ unit.name }}</option>
+                }
+              </select>
+            </div>
+          }
         </div>
       </form>
 
@@ -132,12 +143,16 @@ export class EmployeesListComponent implements OnInit {
   private readonly catalog = inject(OrganizationCatalogService);
   private readonly notifications = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly store = inject(AuthStore);
 
+  protected readonly canListUnits = computed(() =>
+    this.store.hasPermission('UNIDADE_HOSPITALAR_VISUALIZAR'),
+  );
   protected readonly pageSize = DEFAULT_PAGE_SIZE;
   protected readonly page = signal(1);
   protected readonly total = signal(0);
   protected readonly items = signal<EmployeeSummaryResponse[]>([]);
-  protected readonly units = signal<HospitalUnitResponse[]>([]);
+  protected readonly units = signal<HospitalUnitSummaryResponse[]>([]);
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
 
@@ -153,12 +168,16 @@ export class EmployeesListComponent implements OnInit {
       this.load();
     });
 
-    this.catalog.listHospitalUnits({ active: true, page: 1, pageSize: 100 }).subscribe({
-      next: (result) => this.units.set(result.items),
-      error: () => {
-        // Non-blocking: the filter simply stays empty if units cannot be listed.
-      },
-    });
+    // The unit filter needs `UNIDADE_HOSPITALAR_VISUALIZAR` (backend PR #101);
+    // without it the filter is hidden instead of firing a request bound to 403.
+    if (this.canListUnits()) {
+      this.catalog.listHospitalUnits({ active: true, page: 1, pageSize: 100 }).subscribe({
+        next: (result) => this.units.set(result.items),
+        error: () => {
+          // Non-blocking: the filter simply stays empty if units cannot be listed.
+        },
+      });
+    }
 
     this.load();
   }
