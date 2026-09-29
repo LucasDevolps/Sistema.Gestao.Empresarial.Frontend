@@ -125,7 +125,7 @@ src/app/
     home/          página inicial (sem métricas fictícias)
     employees/     lista, detalhe, formulário, 9 endpoints + vínculos
     catalogs/      profissões e cargos (genérico), níveis profissionais (CRUD + exclusão lógica)
-    organization/  unidades e setores (somente leitura)
+    organization/  unidades hospitalares, setores e categorias (CRUD sem DELETE)
     users/         lista + administração de permissões
 ```
 

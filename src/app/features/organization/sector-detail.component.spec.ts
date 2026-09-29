@@ -76,8 +76,9 @@ function sectorResponse(): SectorResponse {
   };
 }
 
-const FULL = ['SETOR_VISUALIZAR', 'SETOR_EDITAR', 'FUNCIONARIO_VISUALIZAR'];
-const NO_STAFF = ['SETOR_VISUALIZAR', 'SETOR_EDITAR'];
+const FULL = ['SETOR_VISUALIZAR', 'SETOR_EDITAR', 'UNIDADE_HOSPITALAR_VISUALIZAR'];
+// Holding FUNCIONARIO_VISUALIZAR no longer grants the unit catalog (backend PR #101).
+const NO_UNITS = ['SETOR_VISUALIZAR', 'SETOR_EDITAR', 'FUNCIONARIO_VISUALIZAR'];
 
 describe('SectorDetailComponent', () => {
   let fixture: ComponentFixture<SectorDetailComponent>;
@@ -130,7 +131,7 @@ describe('SectorDetailComponent', () => {
     ) as HTMLButtonElement | undefined;
   }
 
-  // ---- full capability: SETOR_VISUALIZAR + SETOR_EDITAR + FUNCIONARIO_VISUALIZAR ----
+  // ---- full capability: SETOR_VISUALIZAR + SETOR_EDITAR + UNIDADE_HOSPITALAR_VISUALIZAR ----
 
   describe('with the full "add served unit" capability', () => {
     beforeEach(() => setup(FULL));
@@ -173,10 +174,10 @@ describe('SectorDetailComponent', () => {
     });
   });
 
-  // ---- SETOR_EDITAR but NOT FUNCIONARIO_VISUALIZAR ----
+  // ---- SETOR_EDITAR but NOT UNIDADE_HOSPITALAR_VISUALIZAR ----
 
-  describe('without FUNCIONARIO_VISUALIZAR', () => {
-    beforeEach(() => setup(NO_STAFF));
+  describe('without UNIDADE_HOSPITALAR_VISUALIZAR', () => {
+    beforeEach(() => setup(NO_UNITS));
 
     it('still renders the sector detail', () => {
       expect(query('.page__title')?.textContent).toContain('Farmácia Central');

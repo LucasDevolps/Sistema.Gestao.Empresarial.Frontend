@@ -92,8 +92,13 @@ describe('sector routes — guards require the full screen capability', () => {
     expect(SECTOR_SCREENS.view).toEqual(['SETOR_VISUALIZAR']);
     expect(SECTOR_SCREENS.create).toEqual([
       'SETOR_CRIAR',
-      'FUNCIONARIO_VISUALIZAR',
+      'UNIDADE_HOSPITALAR_VISUALIZAR',
       'CATEGORIA_SETOR_VISUALIZAR',
+    ]);
+    expect(SECTOR_SCREENS.addServedUnit).toEqual([
+      'SETOR_VISUALIZAR',
+      'SETOR_EDITAR',
+      'UNIDADE_HOSPITALAR_VISUALIZAR',
     ]);
     expect(SECTOR_SCREENS.edit).toEqual([
       'SETOR_VISUALIZAR',
@@ -132,6 +137,11 @@ describe('sector routes — guards require the full screen capability', () => {
     expect(allows(leaf(SECTORS_ROUTES, 'novo'))).toBe(true);
   });
 
+  it('no longer accepts FUNCIONARIO_VISUALIZAR as the unit-catalog permission for /setores/novo', () => {
+    store.setIdentity(identity(['SETOR_CRIAR', 'FUNCIONARIO_VISUALIZAR', 'CATEGORIA_SETOR_VISUALIZAR']));
+    expect(blocks(leaf(SECTORS_ROUTES, 'novo'))).toBe(true);
+  });
+
   it('blocks /setores/novo when any one create permission is missing', () => {
     for (const { missing, rest } of withoutEach(SECTOR_SCREENS.create)) {
       store.setIdentity(identity(rest));
@@ -165,7 +175,9 @@ describe('sector routes — guards require the full screen capability', () => {
   // ---- view leaves unchanged ----------------------------------------
 
   it('list and detail require only SETOR_VISUALIZAR', () => {
-    store.setIdentity(identity(['SETOR_CRIAR', 'FUNCIONARIO_VISUALIZAR', 'CATEGORIA_SETOR_VISUALIZAR']));
+    store.setIdentity(
+      identity(['SETOR_CRIAR', 'UNIDADE_HOSPITALAR_VISUALIZAR', 'CATEGORIA_SETOR_VISUALIZAR']),
+    );
     expect(blocks(leaf(SECTORS_ROUTES, ''))).toBe(true);
     expect(blocks(leaf(SECTORS_ROUTES, ':sectorGuid'))).toBe(true);
 

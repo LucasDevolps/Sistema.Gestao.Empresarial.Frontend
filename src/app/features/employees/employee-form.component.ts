@@ -17,7 +17,7 @@ import {
   UpdateEmployeeRequest,
 } from '../../core/models/employee.models';
 import { PositionResponse, ProfessionResponse, ProfessionalLevelResponse } from '../../core/models/catalog.models';
-import { HospitalUnitResponse, SectorSummaryResponse } from '../../core/models/organization.models';
+import { HospitalUnitSummaryResponse, SectorSummaryResponse } from '../../core/models/organization.models';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { ProfessionalCatalogService } from '../catalogs/professional-catalog.service';
 import { OrganizationCatalogService } from '../organization/organization-catalog.service';
@@ -50,13 +50,16 @@ export class EmployeeFormComponent implements OnInit {
   protected readonly professions = signal<ProfessionResponse[]>([]);
   protected readonly positions = signal<PositionResponse[]>([]);
   protected readonly levels = signal<ProfessionalLevelResponse[]>([]);
-  protected readonly units = signal<HospitalUnitResponse[]>([]);
+  protected readonly units = signal<HospitalUnitSummaryResponse[]>([]);
   protected readonly sectors = signal<SectorSummaryResponse[]>([]);
 
   protected readonly canProfessions = computed(() => this.store.hasPermission('PROFISSAO_VISUALIZAR'));
   protected readonly canPositions = computed(() => this.store.hasPermission('CARGO_VISUALIZAR'));
   protected readonly canLevels = computed(() => this.store.hasPermission('NIVEL_PROFISSIONAL_VISUALIZAR'));
-  protected readonly canUnits = computed(() => this.store.hasPermission('FUNCIONARIO_VISUALIZAR'));
+  /** `GET /api/unidades-hospitalares` → `UNIDADE_HOSPITALAR_VISUALIZAR` (backend PR #101). */
+  protected readonly canUnits = computed(() =>
+    this.store.hasPermission('UNIDADE_HOSPITALAR_VISUALIZAR'),
+  );
   protected readonly canSectors = computed(() => this.store.hasPermission('SETOR_VISUALIZAR'));
 
   /** Required catalogues missing for the current operation → block submit (spec section 28). */
@@ -65,7 +68,9 @@ export class EmployeeFormComponent implements OnInit {
     if (!this.canProfessions()) missing.push('PROFISSAO_VISUALIZAR (profissões)');
     if (!this.canPositions()) missing.push('CARGO_VISUALIZAR (cargos)');
     if (!this.canLevels()) missing.push('NIVEL_PROFISSIONAL_VISUALIZAR (níveis)');
-    if (!this.isEdit() && !this.canUnits()) missing.push('FUNCIONARIO_VISUALIZAR (unidades)');
+    if (!this.isEdit() && !this.canUnits()) {
+      missing.push('UNIDADE_HOSPITALAR_VISUALIZAR (unidades)');
+    }
     return missing;
   });
 

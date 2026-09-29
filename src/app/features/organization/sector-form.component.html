@@ -140,7 +140,7 @@
           <label class="field__label" for="responsible">
             Responsável pelo setor <span class="field__hint">(opcional)</span>
           </label>
-          @if (canUnits()) {
+          @if (canStaff()) {
             <select id="responsible" class="select" formControlName="responsibleEmployeeGuid">
               <option value="">Sem responsável definido</option>
               @for (person of staff(); track person.guid) {

@@ -17,6 +17,8 @@ let nextId = 0;
  * opens the dialog through `open`, performs the action on `confirmed` and closes
  * it by resetting `open`; while `busy` is true both buttons are disabled and `Esc`
  * is ignored, so the action cannot be fired twice or abandoned mid-request.
+ * Extra content (e.g. a list of records the decision is about) can be projected
+ * below the message.
  */
 @Component({
   selector: 'app-confirm-dialog',
@@ -34,12 +36,20 @@ let nextId = 0;
         <div class="card__body stack">
           <h2 class="confirm-dialog__title" [id]="titleId">{{ title() }}</h2>
           <p class="confirm-dialog__message" [id]="messageId">{{ message() }}</p>
+          <ng-content />
         </div>
         <div class="card__header confirm-dialog__actions">
           <button type="button" class="btn btn--ghost" [disabled]="busy()" (click)="cancelled.emit()">
-            Cancelar
+            {{ cancelLabel() }}
           </button>
-          <button type="button" class="btn btn--danger" [disabled]="busy()" (click)="confirmed.emit()">
+          <button
+            type="button"
+            class="btn"
+            [class.btn--danger]="tone() === 'danger'"
+            [class.btn--accent]="tone() === 'primary'"
+            [disabled]="busy()"
+            (click)="confirmed.emit()"
+          >
             @if (busy()) {
               <span class="spinner" aria-hidden="true"></span> Processando…
             } @else {
@@ -82,6 +92,9 @@ export class ConfirmDialogComponent {
   readonly title = input.required<string>();
   readonly message = input.required<string>();
   readonly confirmLabel = input('Confirmar');
+  readonly cancelLabel = input('Cancelar');
+  /** `danger` for destructive actions (default); `primary` for a non-destructive "go ahead". */
+  readonly tone = input<'danger' | 'primary'>('danger');
   readonly busy = input(false);
 
   readonly confirmed = output<void>();

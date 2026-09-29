@@ -65,7 +65,12 @@ describe('SectorsListComponent — entry controls match the route guards', () =>
 
   it('shows "Novo setor" only with the full create capability', () => {
     store.setIdentity(
-      identity(['SETOR_VISUALIZAR', 'SETOR_CRIAR', 'FUNCIONARIO_VISUALIZAR', 'CATEGORIA_SETOR_VISUALIZAR']),
+      identity([
+        'SETOR_VISUALIZAR',
+        'SETOR_CRIAR',
+        'UNIDADE_HOSPITALAR_VISUALIZAR',
+        'CATEGORIA_SETOR_VISUALIZAR',
+      ]),
     );
     fixture.detectChanges();
     expect(linkTexts()).toContain('Novo setor');

@@ -104,7 +104,7 @@
           </tbody>
         </table>
       </div>
-      <div class="card__body" *appHasPermission="'FUNCIONARIO_EDITAR'">
+      <div class="card__body" *appHasPermission="addActingUnitPermissions">
         <form class="row" [formGroup]="actingUnitForm" (ngSubmit)="addActingUnit()">
           <div class="field" style="flex: 2 1 220px">
             <label class="field__label" for="au-unit">Adicionar unidade</label>

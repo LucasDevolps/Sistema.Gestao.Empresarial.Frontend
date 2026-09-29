@@ -1,0 +1,126 @@
+/* Only what the global design system (styles.scss) does not already provide. */
+
+.hu-toc ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin: 0;
+  padding: 0.85rem 1.5rem;
+  list-style: none;
+  font-size: 0.88rem;
+}
+
+.hu-section__title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.hu-section__description {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+/* Dense, responsive field grid: several columns on desktop, one on phones. */
+.hu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 0.25rem 1rem;
+  min-width: 0;
+}
+.hu-grid > * {
+  min-width: 0;
+}
+.hu-grid__wide {
+  grid-column: 1 / -1;
+}
+
+.hu-required {
+  color: var(--color-danger-strong);
+  margin-left: 0.15rem;
+}
+
+.hu-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.hu-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.hu-inline .input {
+  flex: 1 1 11rem;
+  width: auto;
+}
+
+.hu-upper {
+  text-transform: uppercase;
+}
+
+.hu-lookup {
+  margin: 0;
+  min-height: 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+.hu-lookup:empty {
+  display: none;
+}
+.hu-lookup--success {
+  color: var(--color-success-strong);
+}
+.hu-lookup--error {
+  color: var(--color-danger-strong);
+}
+
+.hu-alert {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+.hu-alert--warning {
+  background: var(--color-warning-soft);
+  border-left: 4px solid var(--color-warning);
+  color: var(--color-neutral-900);
+}
+
+/* Save bar stays reachable on a long form without scrolling to the very end. */
+.hu-actions {
+  position: sticky;
+  bottom: 0.5rem;
+  z-index: 1;
+  box-shadow: var(--shadow-md);
+}
+.hu-actions__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+}
+.hu-actions__error {
+  margin: 0;
+  flex: 1 1 16rem;
+}
+.hu-actions__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.hu-candidates {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.35rem;
+  max-height: 40vh;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}

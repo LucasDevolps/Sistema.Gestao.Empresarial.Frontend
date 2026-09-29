@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { AuthStore } from '../../core/auth/auth-store';
 import { describeFieldErrors, toApiError } from '../../core/http/api-error';
 import { EmployeeResponse } from '../../core/models/employee.models';
-import { HospitalUnitResponse, SectorSummaryResponse } from '../../core/models/organization.models';
+import { HospitalUnitSummaryResponse, SectorSummaryResponse } from '../../core/models/organization.models';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
 import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
@@ -42,7 +42,16 @@ export class EmployeeDetailComponent implements OnInit {
   protected readonly busy = signal(false);
 
   protected readonly canViewSectors = computed(() => this.store.hasPermission('SETOR_VISUALIZAR'));
-  protected readonly units = signal<HospitalUnitResponse[]>([]);
+  /**
+   * "Adicionar unidade" writes with `FUNCIONARIO_EDITAR` but its `<select>` is fed
+   * by `GET /api/unidades-hospitalares` → `UNIDADE_HOSPITALAR_VISUALIZAR` (backend
+   * PR #101); without that read the form would be a dead end, so it is hidden.
+   */
+  protected readonly addActingUnitPermissions = [
+    'FUNCIONARIO_EDITAR',
+    'UNIDADE_HOSPITALAR_VISUALIZAR',
+  ] as const;
+  protected readonly units = signal<HospitalUnitSummaryResponse[]>([]);
   protected readonly sectors = signal<SectorSummaryResponse[]>([]);
 
   protected readonly actingUnitForm = new FormGroup({
@@ -93,7 +102,7 @@ export class EmployeeDetailComponent implements OnInit {
   }
 
   protected loadRelationshipCatalogs(): void {
-    if (this.units().length === 0) {
+    if (this.units().length === 0 && this.store.hasPermission('UNIDADE_HOSPITALAR_VISUALIZAR')) {
       this.catalog
         .listHospitalUnits({ active: true, page: 1, pageSize: 100 })
         .subscribe({ next: (r) => this.units.set(r.items), error: () => undefined });
