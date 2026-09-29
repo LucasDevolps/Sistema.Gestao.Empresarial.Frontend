@@ -59,8 +59,17 @@ export const routes: Routes = [
           ),
       },
       {
+        // Parent only requires *some* hospital-unit access; each child enforces
+        // the capability of its screen (list/detail → VISUALIZAR, novo → CRIAR,
+        // editar → VISUALIZAR + EDITAR). See HOSPITAL_UNIT_SCREENS.
         path: 'unidades-hospitalares',
-        canMatch: [permissionGuard('FUNCIONARIO_VISUALIZAR')],
+        canMatch: [
+          permissionGuardAny(
+            'UNIDADE_HOSPITALAR_VISUALIZAR',
+            'UNIDADE_HOSPITALAR_CRIAR',
+            'UNIDADE_HOSPITALAR_EDITAR',
+          ),
+        ],
         loadChildren: () =>
           import('./features/organization/hospital-units.routes').then((m) => m.HOSPITAL_UNITS_ROUTES),
       },

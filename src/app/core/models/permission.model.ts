@@ -10,9 +10,14 @@
  * Sectors and sector categories are full CRUD-without-delete resources
  * (`/api/setores*`, `/api/categorias-setor*`). Professional levels are a full
  * CRUD with logical deletion (`/api/niveis-profissionais*`); deleting requires
- * `NIVEL_PROFISSIONAL_EDITAR`.
+ * `NIVEL_PROFISSIONAL_EDITAR`. Hospital units (`/api/unidades-hospitalares*`)
+ * are a full CRUD-without-delete guarded by their own `UNIDADE_HOSPITALAR_*`
+ * codes — `FUNCIONARIO_VISUALIZAR` no longer authorizes them (backend PR #101).
  */
 export const PERMISSION_CODES = [
+  'UNIDADE_HOSPITALAR_VISUALIZAR',
+  'UNIDADE_HOSPITALAR_CRIAR',
+  'UNIDADE_HOSPITALAR_EDITAR',
   'FUNCIONARIO_VISUALIZAR',
   'FUNCIONARIO_CRIAR',
   'FUNCIONARIO_EDITAR',
@@ -38,6 +43,9 @@ export type PermissionCode = (typeof PERMISSION_CODES)[number];
 
 /** Human-readable labels for the permission administration screen. */
 export const PERMISSION_LABELS: Record<PermissionCode, string> = {
+  UNIDADE_HOSPITALAR_VISUALIZAR: 'Visualizar unidades hospitalares',
+  UNIDADE_HOSPITALAR_CRIAR: 'Criar unidades hospitalares',
+  UNIDADE_HOSPITALAR_EDITAR: 'Editar e alterar situação de unidades hospitalares',
   FUNCIONARIO_VISUALIZAR: 'Visualizar funcionários',
   FUNCIONARIO_CRIAR: 'Criar funcionários',
   FUNCIONARIO_EDITAR: 'Editar funcionários e vínculos',

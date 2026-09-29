@@ -80,6 +80,18 @@ describe('ConfirmDialogComponent', () => {
     expect(cancelled).not.toHaveBeenCalled();
   });
 
+  it('supports custom labels and a non-destructive tone (defaults stay destructive)', () => {
+    fixture.componentRef.setInput('open', true);
+    fixture.componentRef.setInput('confirmLabel', 'Continuar mesmo assim');
+    fixture.componentRef.setInput('cancelLabel', 'Revisar cadastro');
+    fixture.componentRef.setInput('tone', 'primary');
+    fixture.detectChanges();
+
+    expect(dialog().querySelector('.btn--danger')).toBeNull();
+    expect(button('.btn--accent').textContent?.trim()).toBe('Continuar mesmo assim');
+    expect(button('.btn--ghost').textContent?.trim()).toBe('Revisar cadastro');
+  });
+
   it('closes when the parent resets open', () => {
     fixture.componentRef.setInput('open', true);
     fixture.detectChanges();

@@ -51,6 +51,16 @@ describe('ShellComponent navigation', () => {
     expect(navLabels()).toContain('Categorias de setor');
   });
 
+  it('shows "Unidades hospitalares" with UNIDADE_HOSPITALAR_VISUALIZAR, not with FUNCIONARIO_VISUALIZAR', () => {
+    store.setIdentity(identity(['FUNCIONARIO_VISUALIZAR', 'UNIDADE_HOSPITALAR_CRIAR']));
+    fixture.detectChanges();
+    expect(navLabels()).not.toContain('Unidades hospitalares');
+
+    store.setIdentity(identity(['UNIDADE_HOSPITALAR_VISUALIZAR']));
+    fixture.detectChanges();
+    expect(navLabels()).toContain('Unidades hospitalares');
+  });
+
   it('always shows "Início" (no permission required)', () => {
     store.setIdentity(identity([]));
     fixture.detectChanges();

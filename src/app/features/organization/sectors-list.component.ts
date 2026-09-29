@@ -16,7 +16,7 @@ import { SECTOR_SCREENS } from '../../core/auth/screen-permissions';
 import { toApiError } from '../../core/http/api-error';
 import { DEFAULT_PAGE_SIZE } from '../../core/models/api.models';
 import {
-  HospitalUnitResponse,
+  HospitalUnitSummaryResponse,
   SectorCategoryResponse,
   SectorSummaryResponse,
 } from '../../core/models/organization.models';
@@ -173,12 +173,14 @@ export class SectorsListComponent implements OnInit {
   protected readonly page = signal(1);
   protected readonly total = signal(0);
   protected readonly items = signal<SectorSummaryResponse[]>([]);
-  protected readonly units = signal<HospitalUnitResponse[]>([]);
+  protected readonly units = signal<HospitalUnitSummaryResponse[]>([]);
   protected readonly categories = signal<SectorCategoryResponse[]>([]);
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
 
-  protected readonly canListUnits = computed(() => this.store.hasPermission('FUNCIONARIO_VISUALIZAR'));
+  protected readonly canListUnits = computed(() =>
+    this.store.hasPermission('UNIDADE_HOSPITALAR_VISUALIZAR'),
+  );
   protected readonly canListCategories = computed(() =>
     this.store.hasPermission('CATEGORIA_SETOR_VISUALIZAR'),
   );

@@ -76,6 +76,10 @@ const DUPLICATE_FIELD_MESSAGES: Record<string, string> = {
   code: 'Já existe um registro com este código.',
   email: 'Já existe um registro utilizando este e-mail.',
   'e-mail': 'Já existe um registro utilizando este e-mail.',
+  // Hospital units (backend PR #101). Keys are lower-cased before the lookup.
+  cnpj: 'Já existe uma unidade hospitalar cadastrada com este CNPJ.',
+  cnes: 'Já existe uma unidade hospitalar cadastrada com este CNES.',
+  internalcode: 'Já existe uma unidade hospitalar com este código interno nesta organização.',
 };
 
 /**

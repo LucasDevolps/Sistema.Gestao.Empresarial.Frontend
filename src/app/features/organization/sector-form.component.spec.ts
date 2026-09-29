@@ -79,7 +79,12 @@ describe('SectorFormComponent — served-unit UX rules (create flow)', () => {
     });
 
     TestBed.inject(AuthStore).setIdentity(
-      identity(['SETOR_CRIAR', 'FUNCIONARIO_VISUALIZAR', 'CATEGORIA_SETOR_VISUALIZAR']),
+      identity([
+        'SETOR_CRIAR',
+        'UNIDADE_HOSPITALAR_VISUALIZAR',
+        'CATEGORIA_SETOR_VISUALIZAR',
+        'FUNCIONARIO_VISUALIZAR',
+      ]),
     );
     notifications = TestBed.inject(NotificationService);
 
@@ -209,5 +214,56 @@ describe('SectorFormComponent — served-unit UX rules (create flow)', () => {
     }
     expect(c.servedUnits.length).toBe(50);
     expect(c.maxServedUnits).toBe(50);
+  });
+});
+
+describe('SectorFormComponent — catalog permissions after backend PR #101', () => {
+  let listHospitalUnits: jasmine.Spy;
+  let listEmployees: jasmine.Spy;
+  let createSector: jasmine.Spy;
+
+  function setup(permissions: string[]): FormInternals & { missingCatalogs(): string[] } {
+    listHospitalUnits = jasmine.createSpy('listHospitalUnits').and.returnValue(page(UNITS));
+    listEmployees = jasmine.createSpy('list').and.returnValue(page([]));
+    createSector = jasmine.createSpy('createSector').and.returnValue(of({ guid: 'new-sector' }));
+    TestBed.configureTestingModule({
+      imports: [SectorFormComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: OrganizationCatalogService,
+          useValue: {
+            listHospitalUnits,
+            listSectorCategories: () => page([{ guid: 'c-1', name: 'Assistencial' }]),
+            createSector,
+          } as unknown as Partial<OrganizationCatalogService>,
+        },
+        {
+          provide: EmployeesService,
+          useValue: { list: listEmployees } as unknown as Partial<EmployeesService>,
+        },
+      ],
+    });
+    TestBed.inject(AuthStore).setIdentity(identity(permissions));
+    const fixture = TestBed.createComponent(SectorFormComponent);
+    fixture.detectChanges();
+    return fixture.componentInstance as unknown as FormInternals & { missingCatalogs(): string[] };
+  }
+
+  it('FUNCIONARIO_VISUALIZAR alone no longer loads units and blocks creation', () => {
+    const c = setup(['SETOR_CRIAR', 'FUNCIONARIO_VISUALIZAR', 'CATEGORIA_SETOR_VISUALIZAR']);
+    expect(listHospitalUnits).not.toHaveBeenCalled();
+    expect(c.missingCatalogs()).toEqual(['UNIDADE_HOSPITALAR_VISUALIZAR (unidades)']);
+
+    c.form.patchValue({ unitGuid: 'u-a', categoryGuid: 'c-1', name: 'Farmácia', sigla: 'FC' });
+    c.submit();
+    expect(createSector).not.toHaveBeenCalled();
+  });
+
+  it('loads units with UNIDADE_HOSPITALAR_VISUALIZAR and skips the optional staff list without FUNCIONARIO_VISUALIZAR', () => {
+    const c = setup(['SETOR_CRIAR', 'UNIDADE_HOSPITALAR_VISUALIZAR', 'CATEGORIA_SETOR_VISUALIZAR']);
+    expect(listHospitalUnits).toHaveBeenCalledTimes(1);
+    expect(listEmployees).not.toHaveBeenCalled();
+    expect(c.missingCatalogs()).toEqual([]);
   });
 });
