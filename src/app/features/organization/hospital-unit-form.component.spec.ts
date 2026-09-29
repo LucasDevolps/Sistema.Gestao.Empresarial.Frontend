@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { NEVER, Observable, of, throwError } from 'rxjs';
+import { NEVER, Observable, Subject, of, throwError } from 'rxjs';
 import { AuthStore } from '../../core/auth/auth-store';
 import { CurrentUserResponse } from '../../core/models/auth.models';
 import {
@@ -472,6 +472,26 @@ describe('HospitalUnitFormComponent', () => {
         expect(c.formError()).not.toContain('IX_');
       });
     }
+
+    it('does not flag a field the user already changed while the save was in flight', () => {
+      const response = new Subject<never>();
+      service.createHospitalUnit.and.returnValue(response);
+      fillRequired();
+      c.form.controls.internalCode.setValue('E2E-01');
+      c.submit();
+
+      c.form.controls.internalCode.setValue(''); // user corrects it before the 409 arrives
+      response.error(
+        new HttpErrorResponse({
+          status: 409,
+          error: { code: 'DUPLICATE_BUSINESS_KEY', field: 'internalCode' },
+        }),
+      );
+
+      expect(c.form.controls.internalCode.errors).toBeNull();
+      expect(c.form.valid).toBeTrue();
+      expect(c.formError()).toContain('código interno'); // still told what happened
+    });
 
     it('maps 400 field errors next to their controls', () => {
       service.createHospitalUnit.and.returnValue(

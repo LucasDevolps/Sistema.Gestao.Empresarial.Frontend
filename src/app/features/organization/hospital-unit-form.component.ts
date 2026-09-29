@@ -34,6 +34,7 @@ import {
 } from '../../shared/format/brazilian-formats';
 import {
   HospitalUnitControlKey,
+  HospitalUnitFormValue,
   applyCepLookup,
   applyCnpjLookup,
   createHospitalUnitForm,
@@ -163,6 +164,8 @@ export class HospitalUnitFormComponent implements OnInit {
   /** Similar units returned by the check; non-null opens the confirmation. */
   protected readonly duplicateCandidates = signal<HospitalUnitSummaryResponse[] | null>(null);
   private pendingRequest: HospitalUnitRegistrationRequest | null = null;
+  /** Raw form value of the last submit, to match late server errors to unchanged fields. */
+  private submittedValue: HospitalUnitFormValue | null = null;
   private loadedSimilarity: HospitalUnitDuplicateQuery | null = null;
 
   private cnpjSubscription: Subscription | null = null;
@@ -369,7 +372,8 @@ export class HospitalUnitFormComponent implements OnInit {
       return;
     }
 
-    const request = toRegistrationRequest(this.form.getRawValue());
+    this.submittedValue = this.form.getRawValue();
+    const request = toRegistrationRequest(this.submittedValue);
     const guid = this.unitGuid() ?? null;
     const query = toDuplicateQuery(request, guid);
     const relevant =
@@ -452,6 +456,9 @@ export class HospitalUnitFormComponent implements OnInit {
         Object.keys(this.form.controls),
       );
       for (const [key, message] of Object.entries(mapped) as [HospitalUnitControlKey, string][]) {
+        if (!this.unchangedSinceSubmit(key)) {
+          continue;
+        }
         const control = this.form.controls[key];
         control.setErrors({ ...(control.errors ?? {}), server: message });
         control.markAsTouched();
@@ -468,9 +475,11 @@ export class HospitalUnitFormComponent implements OnInit {
       parsed.code === DUPLICATE_BUSINESS_KEY &&
       (parsed.field === 'cnpj' || parsed.field === 'cnes' || parsed.field === 'internalCode')
     ) {
-      const control = this.form.controls[parsed.field];
-      control.setErrors({ ...(control.errors ?? {}), duplicate: parsed.message });
-      control.markAsTouched();
+      if (this.unchangedSinceSubmit(parsed.field)) {
+        const control = this.form.controls[parsed.field];
+        control.setErrors({ ...(control.errors ?? {}), duplicate: parsed.message });
+        control.markAsTouched();
+      }
       this.formError.set(parsed.message);
       this.notifications.error(parsed.message);
       this.focusControl(parsed.field);
@@ -487,6 +496,15 @@ export class HospitalUnitFormComponent implements OnInit {
 
     this.formError.set(parsed.message);
     this.notifications.error(parsed.message);
+  }
+
+  /**
+   * The form stays editable while saving, so a server error must only land on a
+   * field that still holds the value that was sent — otherwise a late 400/409
+   * would flag a value the user has already corrected.
+   */
+  private unchangedSinceSubmit(key: HospitalUnitControlKey): boolean {
+    return this.submittedValue !== null && this.submittedValue[key] === this.form.controls[key].value;
   }
 
   private focusFirstInvalid(): void {
