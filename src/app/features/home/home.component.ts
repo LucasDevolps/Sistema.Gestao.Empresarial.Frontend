@@ -4,6 +4,7 @@ import { AuthStore } from '../../core/auth/auth-store';
 import {
   HOSPITAL_UNIT_SCREENS,
   PROFESSIONAL_LEVEL_SCREENS,
+  WORK_SCHEDULE_SCREENS,
 } from '../../core/auth/screen-permissions';
 import { PermissionCode } from '../../core/models/permission.model';
 
@@ -50,6 +51,12 @@ const QUICK_LINKS: readonly QuickLink[] = [
     description: 'Setores das unidades da sua organização.',
     path: '/setores',
     permissions: ['SETOR_VISUALIZAR'],
+  },
+  {
+    label: 'Jornadas de trabalho',
+    description: 'Tipos de jornada (6x1, 5x2…) usados nas escalas.',
+    path: '/jornadas-trabalho',
+    permissions: WORK_SCHEDULE_SCREENS.view,
   },
   {
     label: 'Usuários e permissões',

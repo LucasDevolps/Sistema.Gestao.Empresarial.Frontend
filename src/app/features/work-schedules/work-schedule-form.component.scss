@@ -1,0 +1,9 @@
+.ws-days {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 0 1rem;
+  align-items: start;
+}
+.ws-days > * {
+  min-width: 0;
+}

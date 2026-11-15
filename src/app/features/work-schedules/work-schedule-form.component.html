@@ -1,0 +1,152 @@
+<div class="page stack">
+  <header class="page__head">
+    <div>
+      <h1 class="page__title">{{ isEdit() ? 'Editar jornada de trabalho' : 'Nova jornada de trabalho' }}</h1>
+      <p class="page__subtitle">
+        Uma jornada 6x1 tem 6 dias de trabalho e 1 de descanso; uma 5x2, 5 de trabalho e 2 de
+        descanso. Nenhuma jornada pode permitir 7 dias consecutivos de trabalho.
+      </p>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="empty-state"><span class="spinner"></span> Carregando…</div>
+  } @else if (loadError()) {
+    <div class="card">
+      <div class="card__body stack">
+        <p role="alert">{{ loadError() }}</p>
+        <a class="btn btn--ghost" [routerLink]="listPath">Voltar para a lista</a>
+      </div>
+    </div>
+  } @else {
+    <form class="card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="card__body stack">
+        @if (isEdit() && active() !== null) {
+          <div class="row" style="align-items: center; gap: 0.75rem">
+            <span class="muted">Situação atual:</span>
+            <app-status-badge [active]="active()!" activeLabel="Ativa" inactiveLabel="Inativa" />
+          </div>
+        }
+
+        <div class="field">
+          <label class="field__label" for="name">Nome</label>
+          <input
+            id="name"
+            class="input"
+            formControlName="name"
+            autocomplete="off"
+            [maxlength]="limits.nameMaxLength"
+            [attr.aria-invalid]="invalid('name')"
+            [attr.aria-describedby]="invalid('name') ? 'name-error' : 'name-hint'"
+          />
+          @if (invalid('name')) {
+            <span id="name-error" class="field__error">{{ errorFor('name') }}</span>
+          } @else {
+            <span id="name-hint" class="field__hint">Ex.: 6x1, 5x2, Administrativo 5x2.</span>
+          }
+        </div>
+
+        <div class="ws-days">
+          <div class="field">
+            <label class="field__label" for="consecutiveWorkDays">Dias consecutivos de trabalho</label>
+            <input
+              id="consecutiveWorkDays"
+              class="input"
+              type="number"
+              inputmode="numeric"
+              formControlName="consecutiveWorkDays"
+              [min]="limits.daysMin"
+              [max]="limits.maxConsecutiveWorkDays"
+              step="1"
+              [attr.aria-invalid]="invalid('consecutiveWorkDays')"
+              [attr.aria-describedby]="invalid('consecutiveWorkDays') ? 'consecutiveWorkDays-error' : null"
+            />
+            @if (invalid('consecutiveWorkDays')) {
+              <span id="consecutiveWorkDays-error" class="field__error">
+                {{ errorFor('consecutiveWorkDays') }}
+              </span>
+            }
+          </div>
+          <div class="field">
+            <label class="field__label" for="restDays">Dias de descanso do ciclo</label>
+            <input
+              id="restDays"
+              class="input"
+              type="number"
+              inputmode="numeric"
+              formControlName="restDays"
+              [min]="limits.daysMin"
+              step="1"
+              [attr.aria-invalid]="invalid('restDays')"
+              [attr.aria-describedby]="invalid('restDays') ? 'restDays-error' : null"
+            />
+            @if (invalid('restDays')) {
+              <span id="restDays-error" class="field__error">{{ errorFor('restDays') }}</span>
+            }
+          </div>
+          <div class="field">
+            <label class="field__label" for="maximumConsecutiveWorkDays">
+              Máximo de dias consecutivos permitidos
+            </label>
+            <input
+              id="maximumConsecutiveWorkDays"
+              class="input"
+              type="number"
+              inputmode="numeric"
+              formControlName="maximumConsecutiveWorkDays"
+              [min]="limits.daysMin"
+              [max]="limits.maxConsecutiveWorkDays"
+              step="1"
+              [attr.aria-invalid]="invalid('maximumConsecutiveWorkDays')"
+              [attr.aria-describedby]="
+                invalid('maximumConsecutiveWorkDays')
+                  ? 'maximumConsecutiveWorkDays-error'
+                  : 'maximumConsecutiveWorkDays-hint'
+              "
+            />
+            @if (invalid('maximumConsecutiveWorkDays')) {
+              <span id="maximumConsecutiveWorkDays-error" class="field__error">
+                {{ errorFor('maximumConsecutiveWorkDays') }}
+              </span>
+            } @else {
+              <span id="maximumConsecutiveWorkDays-hint" class="field__hint">
+                De {{ limits.daysMin }} a {{ limits.maxConsecutiveWorkDays }} dias.
+              </span>
+            }
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="description">
+            Descrição <span class="field__hint">(opcional, até {{ limits.descriptionMaxLength }})</span>
+          </label>
+          <textarea
+            id="description"
+            class="textarea"
+            rows="3"
+            formControlName="description"
+            [maxlength]="limits.descriptionMaxLength"
+            [attr.aria-invalid]="invalid('description')"
+            [attr.aria-describedby]="invalid('description') ? 'description-error' : null"
+          ></textarea>
+          @if (invalid('description')) {
+            <span id="description-error" class="field__error">{{ errorFor('description') }}</span>
+          }
+        </div>
+      </div>
+      <div
+        class="card__header"
+        style="border-top: 1px solid var(--color-border); border-bottom: none"
+      >
+        <a class="btn btn--ghost" [routerLink]="listPath">Cancelar</a>
+        <button type="submit" class="btn btn--accent" [disabled]="busy()">
+          @if (busy()) {
+            <span class="spinner" aria-hidden="true"></span> Salvando…
+          } @else {
+            {{ isEdit() ? 'Salvar' : 'Cadastrar' }}
+          }
+        </button>
+      </div>
+    </form>
+  }
+</div>
