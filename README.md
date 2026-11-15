@@ -12,6 +12,8 @@ frontend apenas representa o que foi autorizado.
   [`docs/BACKEND-CONTRACT.md`](docs/BACKEND-CONTRACT.md)
 - Lacunas do backend, CORS/CSP, Docker/WSL, `npm audit`:
   [`docs/LACUNAS-E-INFRAESTRUTURA.md`](docs/LACUNAS-E-INFRAESTRUTURA.md)
+- Publicação IIS com API HTTPS configurável e preservação de localhost:
+  [`docs/IIS-CLOUDFLARE.md`](docs/IIS-CLOUDFLARE.md)
 
 ## Stack
 

@@ -7,7 +7,7 @@ import {
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Observable, catchError, map, switchMap, throwError } from 'rxjs';
-import { APP_CONFIG } from '../config/app-config';
+import { APP_CONFIG, isApiRequestUrl } from '../config/app-config';
 import { NotificationService } from '../notifications/notification.service';
 import { toApiError } from '../http/api-error';
 import { ALREADY_RETRIED, AUTH_FLOW_REQUEST, AuthService } from './auth.service';
@@ -36,7 +36,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const store = inject(AuthStore);
   const notifications = inject(NotificationService);
 
-  const isApiRequest = req.url.startsWith(config.apiBaseUrl) || req.url.startsWith('/');
+  const isApiRequest = isApiRequestUrl(req.url, config.apiBaseUrl, document.baseURI);
   if (!isApiRequest) {
     return next(req);
   }

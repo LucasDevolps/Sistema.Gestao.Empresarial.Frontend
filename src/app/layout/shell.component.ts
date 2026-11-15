@@ -7,6 +7,7 @@ import {
   PROFESSIONAL_LEVEL_SCREENS,
   SECTOR_CATEGORY_SCREENS,
   SECTOR_SCREENS,
+  WORK_SCHEDULE_SCREENS,
 } from '../core/auth/screen-permissions';
 import { PermissionCode } from '../core/models/permission.model';
 
@@ -41,6 +42,11 @@ const NAV_ITEMS: readonly NavItem[] = [
     label: 'Categorias de setor',
     path: '/categorias-setor',
     permissions: SECTOR_CATEGORY_SCREENS.view,
+  },
+  {
+    label: 'Jornadas de trabalho',
+    path: '/jornadas-trabalho',
+    permissions: WORK_SCHEDULE_SCREENS.view,
   },
   {
     label: 'Usuários e permissões',

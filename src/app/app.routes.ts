@@ -98,6 +98,20 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'jornadas-trabalho',
+        canMatch: [
+          permissionGuardAny(
+            'JORNADA_TRABALHO_VISUALIZAR',
+            'JORNADA_TRABALHO_CRIAR',
+            'JORNADA_TRABALHO_EDITAR',
+          ),
+        ],
+        loadChildren: () =>
+          import('./features/work-schedules/work-schedules.routes').then(
+            (m) => m.WORK_SCHEDULES_ROUTES,
+          ),
+      },
+      {
         path: 'usuarios',
         canMatch: [permissionGuard('USUARIO_GERENCIAR_PERMISSOES')],
         loadChildren: () => import('./features/users/users.routes').then((m) => m.USERS_ROUTES),

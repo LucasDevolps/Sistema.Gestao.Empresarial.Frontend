@@ -61,6 +61,16 @@ describe('ShellComponent navigation', () => {
     expect(navLabels()).toContain('Unidades hospitalares');
   });
 
+  it('shows "Jornadas de trabalho" only with JORNADA_TRABALHO_VISUALIZAR', () => {
+    store.setIdentity(identity(['JORNADA_TRABALHO_CRIAR', 'JORNADA_TRABALHO_EDITAR']));
+    fixture.detectChanges();
+    expect(navLabels()).not.toContain('Jornadas de trabalho');
+
+    store.setIdentity(identity(['JORNADA_TRABALHO_VISUALIZAR']));
+    fixture.detectChanges();
+    expect(navLabels()).toContain('Jornadas de trabalho');
+  });
+
   it('always shows "Início" (no permission required)', () => {
     store.setIdentity(identity([]));
     fixture.detectChanges();
