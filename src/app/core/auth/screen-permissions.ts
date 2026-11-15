@@ -132,3 +132,10 @@ export const HOSPITAL_UNIT_SCREENS = {
    */
   lookup: ['UNIDADE_HOSPITALAR_VISUALIZAR'],
 } as const satisfies Record<string, readonly PermissionCode[]>;
+
+export const WORK_SCHEDULE_SCREENS = {
+  view: ['JORNADA_TRABALHO_VISUALIZAR'],
+  create: ['JORNADA_TRABALHO_CRIAR'],
+  edit: ['JORNADA_TRABALHO_VISUALIZAR', 'JORNADA_TRABALHO_EDITAR'],
+  status: ['JORNADA_TRABALHO_VISUALIZAR', 'JORNADA_TRABALHO_EDITAR'],
+} as const satisfies Record<string, readonly PermissionCode[]>;

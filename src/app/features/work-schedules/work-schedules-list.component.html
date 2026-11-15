@@ -1,0 +1,146 @@
+<div class="page stack">
+  <header class="page__head">
+    <div>
+      <h1 class="page__title">Jornadas de trabalho</h1>
+      <p class="page__subtitle">
+        Tipos de jornada (como 6x1 e 5x2) usados na geração das escalas. Jornadas não são
+        excluídas: inative as que não devem mais ser usadas em novos vínculos.
+      </p>
+    </div>
+    <a *appHasPermission="screens.create" class="btn btn--accent" routerLink="nova">
+      Nova jornada
+    </a>
+  </header>
+
+  <form class="card" [formGroup]="filters" (ngSubmit)="reloadNow()" aria-label="Filtros de jornadas">
+    <div class="card__body ws-filters">
+      <div class="field">
+        <label class="field__label" for="f-search">Nome</label>
+        <input
+          id="f-search"
+          class="input"
+          type="search"
+          formControlName="search"
+          [maxlength]="limits.nameMaxLength"
+        />
+      </div>
+      <div class="field">
+        <label class="field__label" for="f-active">Situação</label>
+        <select id="f-active" class="select" formControlName="active">
+          <option value="">Todas</option>
+          <option value="true">Ativas</option>
+          <option value="false">Inativas</option>
+        </select>
+      </div>
+      <div class="field ws-filters__actions">
+        <button type="button" class="btn btn--ghost" [disabled]="!hasFilters()" (click)="clearFilters()">
+          Limpar filtros
+        </button>
+      </div>
+    </div>
+  </form>
+
+  @if (error()) {
+    <p class="card__body muted" role="alert">{{ error() }}</p>
+  }
+
+  <div class="table-wrap">
+    <table class="data" [attr.aria-busy]="loading()">
+      <caption class="visually-hidden">Jornadas de trabalho</caption>
+      <thead>
+        <tr>
+          <th scope="col">Nome</th>
+          <th scope="col">Dias de trabalho</th>
+          <th scope="col">Dias de descanso</th>
+          <th scope="col">Máx. dias consecutivos</th>
+          <th scope="col">Situação</th>
+          <th scope="col"><span class="visually-hidden">Ações</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (schedule of items(); track schedule.guid) {
+          <tr>
+            <td>
+              {{ schedule.name }}
+              @if (schedule.description) {
+                <span class="ws-description muted">{{ schedule.description }}</span>
+              }
+            </td>
+            <td>{{ schedule.consecutiveWorkDays }}</td>
+            <td>{{ schedule.restDays }}</td>
+            <td>{{ schedule.maximumConsecutiveWorkDays }}</td>
+            <td>
+              <app-status-badge [active]="schedule.active" activeLabel="Ativa" inactiveLabel="Inativa" />
+            </td>
+            <td>
+              <div class="ws-row-actions">
+                <a
+                  *appHasPermission="screens.edit"
+                  class="btn btn--ghost btn--sm"
+                  [routerLink]="[schedule.guid, 'editar']"
+                  [attr.aria-label]="'Editar jornada ' + schedule.name"
+                >
+                  Editar
+                </a>
+                <button
+                  *appHasPermission="screens.status"
+                  type="button"
+                  class="btn btn--ghost btn--sm"
+                  [disabled]="statusBusy() !== null"
+                  [attr.aria-label]="(schedule.active ? 'Inativar jornada ' : 'Reativar jornada ') + schedule.name"
+                  (click)="requestStatusChange(schedule)"
+                >
+                  @if (statusBusy() === schedule.guid) {
+                    <span class="spinner" aria-hidden="true"></span>
+                  }
+                  {{ schedule.active ? 'Inativar' : 'Reativar' }}
+                </button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          @if (!loading() && !error()) {
+            <tr>
+              <td colspan="6">
+                <div class="empty-state">
+                  {{
+                    hasFilters()
+                      ? 'Nenhuma jornada encontrada para os filtros informados.'
+                      : 'Nenhuma jornada de trabalho cadastrada.'
+                  }}
+                </div>
+              </td>
+            </tr>
+          }
+        }
+        @if (loading()) {
+          <tr>
+            <td colspan="6">
+              <div class="empty-state" role="status">
+                <span class="spinner" aria-hidden="true"></span> Carregando…
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <app-paginator
+    [page]="page()"
+    [pageSize]="pageSize"
+    [total]="total()"
+    [disabled]="loading()"
+    (pageChange)="goToPage($event)"
+  />
+</div>
+
+<app-confirm-dialog
+  [open]="pendingInactivation() !== null"
+  title="Inativar jornada de trabalho"
+  [message]="inactivateMessage()"
+  confirmLabel="Inativar jornada"
+  [busy]="statusBusy() !== null"
+  (confirmed)="confirmInactivation()"
+  (cancelled)="cancelInactivation()"
+/>

@@ -125,6 +125,32 @@ HTTP `DELETE`, então a exclusão é a ação `POST …/excluir`. Contrato de n�
 - O cadastro/edição de funcionário carrega os níveis com
   `listLevels({ active: true, page: 1, pageSize: 100 })` (envelope paginado).
 
+## Jornadas de trabalho — `features/work-schedules`
+
+| Tela / ação | Endpoint | Permissão |
+|---|---|---|
+| Lista (`work-schedules-list`) | `GET /api/jornadas-trabalho?search&active&page&pageSize` | `JORNADA_TRABALHO_VISUALIZAR` |
+| Edição (`work-schedule-form`) | `GET/PUT /api/jornadas-trabalho/{guid}` | `JORNADA_TRABALHO_VISUALIZAR` / `JORNADA_TRABALHO_EDITAR` |
+| Nova jornada | `POST /api/jornadas-trabalho` | `JORNADA_TRABALHO_CRIAR` |
+| Inativar/reativar (lista; inativar pede confirmação) | `PATCH /api/jornadas-trabalho/{guid}/status` | `JORNADA_TRABALHO_EDITAR` |
+
+Tipos de jornada (6x1, 5x2…) da issue #51 do backend, base para a futura geração
+de escalas. Catálogo global, **sem exclusão**: a jornada é inativada/reativada e
+continua no histórico. Contrato: `{ guid, name, consecutiveWorkDays, restDays,
+maximumConsecutiveWorkDays, description, active, createdAt, updatedAt }`; o corpo
+de `POST`/`PUT` é `{ name, consecutiveWorkDays, restDays,
+maximumConsecutiveWorkDays, description? }`.
+
+- Regras espelhadas no formulário (só UX; o backend revalida): nome obrigatório
+  (até 100), descrição opcional (até 500), dias de trabalho 1–6, dias de descanso
+  inteiro > 0, máximo de dias consecutivos 1–6 (**nunca 7**) e dias de trabalho
+  ≤ máximo (PR #130 do backend).
+- `409 DUPLICATE_BUSINESS_KEY` traz `field` `name`; o formulário marca o nome.
+- `400` tem as mensagens colocadas sob cada campo; `422` (regra de domínio, só
+  `title` genérico) mostra uma mensagem própria da tela.
+- Com filtro de situação ativo, a lista relê a página após inativar/reativar; sem
+  filtro, atualiza a linha no lugar.
+
 ## Usuários e permissões — `features/users`
 
 | Tela / ação | Endpoint | Permissão |
@@ -145,7 +171,7 @@ HTTP `DELETE`, então a exclusão é a ação `POST …/excluir`. Contrato de n�
 `FUNCIONARIO_VISUALIZAR/CRIAR/EDITAR`, `PROFISSAO_VISUALIZAR/CRIAR/EDITAR`,
 `CARGO_VISUALIZAR/CRIAR/EDITAR`, `NIVEL_PROFISSIONAL_VISUALIZAR/CRIAR/EDITAR`,
 `SETOR_VISUALIZAR/CRIAR/EDITAR`, `CATEGORIA_SETOR_VISUALIZAR/CRIAR/EDITAR`,
-`USUARIO_GERENCIAR_PERMISSOES`.
+`JORNADA_TRABALHO_VISUALIZAR/CRIAR/EDITAR`, `USUARIO_GERENCIAR_PERMISSOES`.
 
 `SETOR_CRIAR` e as três `CATEGORIA_SETOR_*` foram adicionadas junto com o CRUD de
 setores; `SETOR_EDITAR` agora é consumida (editar setor, status e unidades
@@ -155,7 +181,9 @@ capacidades de tela estão em `PROFESSIONAL_LEVEL_SCREENS`. As três
 `UNIDADE_HOSPITALAR_*` vieram com a PR #101 do backend e **substituem**
 `FUNCIONARIO_VISUALIZAR` em todos os `/api/unidades-hospitalares*` — inclusive
 nos catálogos de unidades usados por setores e funcionários
-(`HOSPITAL_UNIT_SCREENS`).
+(`HOSPITAL_UNIT_SCREENS`). As três `JORNADA_TRABALHO_*` vieram com a issue #51
+do backend (`EDITAR` também protege inativar/reativar); as capacidades de tela
+estão em `WORK_SCHEDULE_SCREENS`.
 
 ## Guards de rota e capacidade de tela
 
@@ -172,7 +200,7 @@ levariam a uma operação impossível de concluir.
 
 Definição central e tipada em `core/auth/screen-permissions.ts`
 (`SECTOR_SCREENS`, `SECTOR_CATEGORY_SCREENS`, `PROFESSIONAL_LEVEL_SCREENS`,
-`HOSPITAL_UNIT_SCREENS`), consumida por rotas, menu, botões de entrada e testes:
+`HOSPITAL_UNIT_SCREENS`, `WORK_SCHEDULE_SCREENS`), consumida por rotas, menu, botões de entrada e testes:
 
 | Tela / ação (frontend) | Capacidade exigida | Endpoints que a tela consome |
 |---|---|---|
@@ -186,6 +214,10 @@ Definição central e tipada em `core/auth/screen-permissions.ts`
 | Editar setor (`/setores/:guid/editar`) | `SETOR_VISUALIZAR` + `SETOR_EDITAR` + `CATEGORIA_SETOR_VISUALIZAR` | `GET /api/setores/{guid}` + `PUT /api/setores/{guid}` + `GET /api/categorias-setor` |
 | Adicionar unidade atendida (form no detalhe) | `SETOR_VISUALIZAR` + `SETOR_EDITAR` + `UNIDADE_HOSPITALAR_VISUALIZAR` | `GET /api/setores/{guid}` + `GET /api/unidades-hospitalares` + `POST /api/setores/{guid}/unidades-atendidas` |
 | Encerrar unidade atendida (ação no detalhe) | `SETOR_VISUALIZAR` + `SETOR_EDITAR` | `GET /api/setores/{guid}` (o vínculo já veio aqui) + `POST /api/setores/{guid}/unidades-atendidas/{rel}/encerrar` |
+| Visualizar jornadas (lista) | `JORNADA_TRABALHO_VISUALIZAR` | `GET /api/jornadas-trabalho` |
+| Criar jornada (`/jornadas-trabalho/nova`) | `JORNADA_TRABALHO_CRIAR` | `POST /api/jornadas-trabalho` (sem `GET` obrigatório) |
+| Editar jornada (`/jornadas-trabalho/:guid/editar`) | `JORNADA_TRABALHO_VISUALIZAR` + `JORNADA_TRABALHO_EDITAR` | `GET` + `PUT /api/jornadas-trabalho/{guid}` |
+| Inativar/reativar jornada (lista) | `JORNADA_TRABALHO_VISUALIZAR` + `JORNADA_TRABALHO_EDITAR` | `PATCH /api/jornadas-trabalho/{guid}/status` |
 | Visualizar categorias (lista) | `CATEGORIA_SETOR_VISUALIZAR` | `GET /api/categorias-setor` |
 | Criar categoria (`/categorias-setor/nova`) | `CATEGORIA_SETOR_CRIAR` | `POST /api/categorias-setor` (sem `GET` obrigatório) |
 | Editar categoria (`/categorias-setor/:guid/editar`) | `CATEGORIA_SETOR_VISUALIZAR` + `CATEGORIA_SETOR_EDITAR` | `GET /api/categorias-setor/{guid}` + `PUT /api/categorias-setor/{guid}` |
@@ -207,7 +239,7 @@ Notas:
 
 Guards: cada rota folha usa `permissionGuard(...capacidade)` (exige **todas**).
 O caminho pai `/setores` (e `/categorias-setor`, `/niveis-profissionais`,
-`/unidades-hospitalares`) usa `permissionGuardAny(...)` —
+`/unidades-hospitalares`, `/jornadas-trabalho`) usa `permissionGuardAny(...)` —
 "tem alguma capacidade na área" — só para não carregar o chunk de quem não tem
 acesso nenhum; ele não mascara as dependências, pois a folha revalida o conjunto
 completo. O menu aponta para a lista de cada área e é gated pela capacidade
